@@ -1,0 +1,15 @@
+package com.bloodconnect.common.enums;
+
+public enum NotificationType {
+    COMPATIBLE_REQUEST,
+    URGENT_REQUEST,
+    NEARBY_REQUEST,
+    RESPONSE_RECEIVED,
+    RESPONSE_ACCEPTED,
+    RESPONSE_REJECTED,
+    RESPONSE_COMPLETED,
+    RESPONSE_CANCELLED,
+    REQUEST_FULFILLED,
+    DONATION_REMINDER,
+    SYSTEM
+}

@@ -1,0 +1,11 @@
+# BloodConnect RD — Backend .gitignore
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.factorypath
+*.log
+.env
