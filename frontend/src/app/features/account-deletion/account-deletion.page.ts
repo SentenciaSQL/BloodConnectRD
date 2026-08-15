@@ -1,5 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
+import { AuthService } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
 
 export const ACCOUNT_DELETION_EMAIL = 'inf512.andres.frias@gmail.com';
 export const ACCOUNT_DELETION_SUBJECT =
@@ -27,9 +30,13 @@ export const ACCOUNT_DELETION_SUBJECT =
         <ol class="mt-6 grid gap-4 text-sm leading-relaxed text-ink-700">
           <li class="rounded-2xl bg-ink-50 p-4">
             <strong class="block text-ink-950">1. Envía un correo electrónico</strong>
-            <a class="mt-1 inline-block font-bold text-brand-700" [href]="mailtoHref">
+            <button
+              type="button"
+              class="mt-1 font-bold text-brand-700 underline-offset-2 hover:underline"
+              (click)="openMail()"
+            >
               {{ email }}
-            </a>
+            </button>
           </li>
           <li class="rounded-2xl bg-ink-50 p-4">
             <strong class="block text-ink-950">2. Usa este asunto</strong>
@@ -49,7 +56,14 @@ export const ACCOUNT_DELETION_SUBJECT =
             </p>
           </li>
         </ol>
-        <a class="btn-primary mt-8" [href]="mailtoHref">Enviar solicitud por correo</a>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <button type="button" class="btn-primary" (click)="openMail()">
+            Enviar solicitud por correo
+          </button>
+          <button type="button" class="btn-secondary" (click)="copyDetails()">
+            Copiar datos del correo
+          </button>
+        </div>
       </article>
 
       <div class="mt-8 grid gap-6 md:grid-cols-2">
@@ -76,9 +90,13 @@ export const ACCOUNT_DELETION_SUBJECT =
         <h2 class="font-display text-2xl font-semibold">Contacto</h2>
         <p class="mt-3 text-sm leading-relaxed text-ink-300">
           Si tienes dudas sobre esta política o sobre el estado de tu solicitud, escríbenos a
-          <a class="font-bold text-white underline-offset-2 hover:underline" [href]="mailtoHref">
+          <button
+            type="button"
+            class="font-bold text-white underline-offset-2 hover:underline"
+            (click)="openMail()"
+          >
             {{ email }}
-          </a>
+          </button>
           .
         </p>
         <a routerLink="/preguntas-frecuentes" class="mt-5 inline-block text-sm font-bold text-brand-200">
@@ -89,7 +107,61 @@ export const ACCOUNT_DELETION_SUBJECT =
   `,
 })
 export class AccountDeletionPage {
+  private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
   readonly email = ACCOUNT_DELETION_EMAIL;
   readonly subject = ACCOUNT_DELETION_SUBJECT;
-  readonly mailtoHref = `mailto:${ACCOUNT_DELETION_EMAIL}?subject=${encodeURIComponent(ACCOUNT_DELETION_SUBJECT)}`;
+
+  openMail(): void {
+    const opened = window.open(this.gmailComposeUrl(), '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      window.location.assign(this.mailtoUrl());
+    }
+    void this.copyDetails(false);
+    this.toast.success('Abrimos el correo. Si no ves la ventana, usa “Copiar datos del correo”.');
+  }
+
+  async copyDetails(showToast = true): Promise<void> {
+    const text = [
+      `Para: ${this.email}`,
+      `Asunto: ${this.subject}`,
+      '',
+      this.messageBody(),
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      if (showToast) {
+        this.toast.success('Copiamos el destinatario, el asunto y el mensaje.');
+      }
+    } catch {
+      if (showToast) {
+        this.toast.error('No pudimos copiar los datos. Escríbenos a ' + this.email);
+      }
+    }
+  }
+
+  private gmailComposeUrl(): string {
+    const params = new URLSearchParams({
+      view: 'cm',
+      fs: '1',
+      to: this.email,
+      su: this.subject,
+      body: this.messageBody(),
+    });
+    return `https://mail.google.com/mail/?${params.toString()}`;
+  }
+
+  private mailtoUrl(): string {
+    return `mailto:${this.email}?subject=${encodeURIComponent(this.subject)}&body=${encodeURIComponent(this.messageBody())}`;
+  }
+
+  private messageBody(): string {
+    const accountEmail = this.auth.user()?.email ?? '';
+    return [
+      'Hola,',
+      '',
+      'Solicito la eliminación permanente de mi cuenta de BloodConnect RD.',
+      `Correo asociado a la cuenta: ${accountEmail}`,
+    ].join('\n');
+  }
 }
