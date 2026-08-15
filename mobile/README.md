@@ -143,7 +143,7 @@ Inicio · Solicitudes · Donar · Centros · Perfil
 - Crear solicitud (provincia → municipio)
 - Centros (lista / mapa degradable sin API key)
 - Perfil y disponibilidad
-- Historial de donaciones
+- Mis donaciones (ofrecimientos e historial)
 - Notificaciones
 - FCM: registra `POST /api/devices` si Firebase está configurado
 

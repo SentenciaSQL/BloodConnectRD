@@ -163,6 +163,9 @@ POST /api/blood-requests/{id}/responses
 GET  /api/donation-centers
 GET  /api/donation-centers/nearby
 
+GET  /api/donations/me
+GET  /api/donation-responses/me
+
 GET  /api/notifications
 POST /api/devices
 

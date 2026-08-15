@@ -4,6 +4,7 @@ export type Urgency = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type Availability = 'AVAILABLE' | 'TEMPORARILY_UNAVAILABLE' | 'INACTIVE';
 export type RequestStatus = 'OPEN' | 'IN_PROGRESS' | 'FULFILLED' | 'CANCELLED' | 'EXPIRED';
 export type DonationStatus = 'COMPLETED' | 'CANCELLED';
+export type ResponseStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 export type CenterType = 'HOSPITAL' | 'CLINIC' | 'BLOOD_BANK' | 'MEDICAL_CENTER' | 'OTHER';
 export type Sex = 'MALE' | 'FEMALE' | 'OTHER';
 
@@ -146,6 +147,26 @@ export interface DonationHistory {
   estimatedNextDate?: string | null;
   orientationNote: string;
   history: Donation[];
+}
+
+export interface DonationResponse {
+  id: number;
+  bloodRequestId: number;
+  donorId: number;
+  donorUserId: number;
+  donorName: string;
+  donorPhone?: string;
+  donorBloodType: BloodType;
+  status: ResponseStatus;
+  message?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hospital?: string | null;
+  requestBloodType?: BloodType | null;
+  municipalityName?: string | null;
+  provinceName?: string | null;
+  urgency?: Urgency | null;
+  requestStatus?: RequestStatus | null;
 }
 
 export interface Notification {

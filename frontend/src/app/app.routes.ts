@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { adminGuard, authGuard, donorGuard, guestGuard } from './core/guards/auth.guards';
+import { adminGuard, authGuard, guestGuard } from './core/guards/auth.guards';
 
 export const routes: Routes = [
   {
@@ -97,7 +97,6 @@ export const routes: Routes = [
       },
       {
         path: 'donaciones',
-        canActivate: [donorGuard],
         loadComponent: () =>
           import('./features/dashboard/dashboard.pages').then(
             (component) => component.MyDonationsPage,

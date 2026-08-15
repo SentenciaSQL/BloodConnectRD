@@ -35,6 +35,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -171,8 +172,13 @@ public class DonorService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<Donor> findOptionalByUserId(Long userId) {
+        return donorRepository.findByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
     public Donor findByUserId(Long userId) {
-        return donorRepository.findByUserId(userId)
+        return findOptionalByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "El usuario autenticado no tiene un perfil de donante"
                 ));

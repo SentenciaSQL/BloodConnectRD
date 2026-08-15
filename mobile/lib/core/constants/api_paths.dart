@@ -5,6 +5,7 @@ abstract final class ApiPaths {
   static const bloodRequests = '/api/blood-requests';
   static const donationCenters = '/api/donation-centers';
   static const donations = '/api/donations';
+  static const donationResponses = '/api/donation-responses';
   static const notifications = '/api/notifications';
   static const devices = '/api/devices';
 }

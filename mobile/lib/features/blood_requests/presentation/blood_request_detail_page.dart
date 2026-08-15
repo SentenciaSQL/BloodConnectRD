@@ -35,7 +35,7 @@ class _BloodRequestDetailPageState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Tu ofrecimiento fue enviado. Te contactarán para coordinar.',
+            'Tu ofrecimiento fue enviado. Puedes seguirlo en Mis donaciones.',
           ),
         ),
       );

@@ -33,7 +33,12 @@ public class DonationService {
 
     @Transactional(readOnly = true)
     public DonationHistoryResponse mine(UserPrincipal principal) {
-        Donor donor = donorService.findByUserId(principal.getId());
+        return donorService.findOptionalByUserId(principal.getId())
+                .map(this::historyFor)
+                .orElseGet(this::emptyHistory);
+    }
+
+    private DonationHistoryResponse historyFor(Donor donor) {
         List<Donation> donations = donationRepository.findByDonorIdOrderByDonationDateDesc(donor.getId());
         List<Donation> completed = donations.stream()
                 .filter(donation -> donation.getStatus() == DonationStatus.COMPLETED)
@@ -50,6 +55,10 @@ public class DonationService {
                 ORIENTATION_NOTE,
                 donations.stream().map(this::toDto).toList()
         );
+    }
+
+    private DonationHistoryResponse emptyHistory() {
+        return new DonationHistoryResponse(0, 0, null, null, ORIENTATION_NOTE, List.of());
     }
 
     @Transactional(readOnly = true)

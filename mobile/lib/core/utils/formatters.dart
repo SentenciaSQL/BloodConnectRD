@@ -21,6 +21,15 @@ String availabilityLabel(String status) => switch (status) {
   _ => 'Inactivo',
 };
 
+String responseStatusLabel(String status) => switch (status) {
+  'PENDING' => 'Pendiente',
+  'ACCEPTED' => 'Aceptada',
+  'REJECTED' => 'No seleccionada',
+  'COMPLETED' => 'Completada',
+  'CANCELLED' => 'Cancelada',
+  _ => status,
+};
+
 String centerTypeLabel(String type) => switch (type) {
   'HOSPITAL' => 'Hospital',
   'CLINIC' => 'Clínica',

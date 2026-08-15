@@ -465,7 +465,7 @@ export class RequestDetailPage implements OnInit {
     this.sending.set(true);
     this.api.respondToRequest(this.request()!.id, this.responseForm.controls.message.value).subscribe({
       next: () => {
-        this.toast.success('Tu respuesta fue enviada. Revisa tus notificaciones para dar seguimiento.');
+        this.toast.success('Tu respuesta fue enviada. Puedes seguirla en Mis donaciones.');
         this.responseForm.reset();
       },
       error: (error) => {

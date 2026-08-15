@@ -100,6 +100,15 @@ public class DonationResponseService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<DonationResponseDto> mine(UserPrincipal principal) {
+        return donorService.findOptionalByUserId(principal.getId())
+                .map(donor -> responseRepository.findByDonorIdOrderByCreatedAtDesc(donor.getId()).stream()
+                        .map(this::toDto)
+                        .toList())
+                .orElseGet(List::of);
+    }
+
     @Transactional
     public DonationResponseDto accept(Long id, UserPrincipal principal) {
         DonationResponse response = find(id);
@@ -231,9 +240,10 @@ public class DonationResponseService {
 
     private DonationResponseDto toDto(DonationResponse response) {
         Donor donor = response.getDonor();
+        BloodRequest request = response.getBloodRequest();
         return new DonationResponseDto(
                 response.getId(),
-                response.getBloodRequest().getId(),
+                request.getId(),
                 donor.getId(),
                 donor.getUser().getId(),
                 donor.getUser().getFirstName() + " " + donor.getUser().getLastName(),
@@ -242,7 +252,13 @@ public class DonationResponseService {
                 response.getStatus(),
                 response.getMessage(),
                 response.getCreatedAt(),
-                response.getUpdatedAt()
+                response.getUpdatedAt(),
+                request.getHospital(),
+                request.getBloodType(),
+                request.getMunicipality().getName(),
+                request.getProvince().getName(),
+                request.getUrgency(),
+                request.getStatus()
         );
     }
 

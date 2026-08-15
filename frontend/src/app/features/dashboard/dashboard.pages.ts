@@ -16,12 +16,14 @@ import {
   BloodRequestPayload,
   BloodType,
   DonationHistory,
+  DonationResponse,
   Donor,
   DonorPayload,
   Municipality,
   Notification,
   PageResponse,
   Province,
+  ResponseStatus,
   Sex,
   Urgency,
 } from '../../core/models/api.models';
@@ -62,11 +64,18 @@ function normalizePhone(value: string): string {
       <p class="mt-2 text-ink-600">Aquí tienes un resumen de tu actividad reciente.</p>
     </header>
 
-    <div class="mt-8 grid gap-4 sm:grid-cols-3">
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <article class="rounded-2xl bg-brand-600 p-6 text-white">
         <p class="text-sm font-semibold text-brand-100">Mis solicitudes</p>
         <p class="mt-3 font-display text-4xl font-semibold">{{ requests()?.totalElements ?? '—' }}</p>
       </article>
+      <a routerLink="/dashboard/donaciones" class="rounded-2xl bg-white p-6 shadow-sm transition hover:border-brand-300 hover:shadow-md">
+        <p class="text-sm font-semibold text-ink-500">Mis donaciones</p>
+        <p class="mt-3 font-display text-4xl font-semibold text-ink-950">
+          {{ donations()?.totalDonations ?? '—' }}
+        </p>
+        <p class="mt-2 text-sm text-ink-500">Ver historial y ofrecimientos →</p>
+      </a>
       <article class="rounded-2xl bg-white p-6 shadow-sm">
         <p class="text-sm font-semibold text-ink-500">Notificaciones sin leer</p>
         <p class="mt-3 font-display text-4xl font-semibold text-ink-950">{{ unreadCount() }}</p>
@@ -77,9 +86,12 @@ function normalizePhone(value: string): string {
       </article>
     </div>
 
-    <div class="mt-10 grid gap-4 sm:grid-cols-3">
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <a routerLink="/dashboard/solicitudes" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
         + Crear solicitud
+      </a>
+      <a routerLink="/dashboard/donaciones" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
+        Ver mis donaciones
       </a>
       <a routerLink="/dashboard/perfil" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
         Actualizar mi perfil
@@ -122,6 +134,7 @@ export class DashboardHomePage implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);
   readonly requests = signal<PageResponse<BloodRequest> | null>(null);
+  readonly donations = signal<DonationHistory | null>(null);
   readonly unreadCount = signal(0);
   readonly loading = signal(true);
 
@@ -130,6 +143,9 @@ export class DashboardHomePage implements OnInit {
       next: (requests) => this.requests.set(requests),
       error: () => this.loading.set(false),
       complete: () => this.loading.set(false),
+    });
+    this.api.donationHistory().subscribe({
+      next: (history) => this.donations.set(history),
     });
     this.api.notifications(0, true).subscribe({
       next: (notifications) => this.unreadCount.set(notifications.totalElements),
@@ -735,69 +751,234 @@ export class MyRequestsPage implements OnInit {
 @Component({
   selector: 'app-my-donations-page',
   standalone: true,
-  imports: [DatePipe, DonationCardComponent, EmptyStateComponent, LoadingSpinnerComponent, RouterLink],
+  imports: [
+    DatePipe,
+    BadgeComponent,
+    DonationCardComponent,
+    EmptyStateComponent,
+    LoadingSpinnerComponent,
+    RouterLink,
+  ],
   template: `
     <header>
       <p class="eyebrow">Historial</p>
       <h1 class="font-display text-4xl font-semibold text-ink-950">Mis donaciones</h1>
-      <p class="mt-2 text-ink-600">Consulta las donaciones registradas por los centros.</p>
+      <p class="mt-2 text-ink-600">
+        Revisa tus ofrecimientos a solicitudes y las donaciones confirmadas.
+      </p>
     </header>
 
     @if (loading()) {
       <app-loading-spinner label="Cargando historial…" />
-    } @else if (history()) {
-      <div class="mt-8 grid gap-4 sm:grid-cols-3">
-        <article class="rounded-2xl bg-brand-600 p-6 text-white">
-          <p class="text-sm text-brand-100">Donaciones completadas</p>
-          <p class="mt-2 font-display text-4xl font-semibold">{{ history()!.totalDonations }}</p>
-        </article>
-        <article class="rounded-2xl bg-white p-6 shadow-sm">
-          <p class="text-sm text-ink-500">Unidades donadas</p>
-          <p class="mt-2 font-display text-4xl font-semibold">{{ history()!.totalUnits }}</p>
-        </article>
-        <article class="rounded-2xl bg-ink-950 p-6 text-white">
-          <p class="text-sm text-ink-300">Próxima fecha estimada</p>
-          <p class="mt-2 text-xl font-bold">
-            {{ history()!.estimatedNextDate ? (history()!.estimatedNextDate | date: 'mediumDate') : 'Consulta en el centro' }}
-          </p>
-        </article>
-      </div>
-      <p class="mt-6 rounded-xl border-l-4 border-amber-400 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900">
-        {{ history()!.orientationNote }}
-      </p>
-      @if (history()!.history.length) {
-        <div class="mt-8 grid gap-4 md:grid-cols-2">
-          @for (donation of history()!.history; track donation.id) {
-            <app-donation-card [donation]="donation" />
-          }
-        </div>
-      } @else {
+    } @else {
+      @if (!auth.isDonor()) {
         <div class="mt-8">
           <app-empty-state
-            title="No hay donaciones registradas"
-            message="Tu historial aparecerá cuando un centro confirme una donación."
+            title="Completa tu perfil de donante"
+            message="Para ofrecer ayuda y ver tu historial de donaciones, primero crea tu perfil de donante."
           >
-            <a routerLink="/centros" class="btn-primary">Buscar un centro</a>
+            <a routerLink="/dashboard/perfil" class="btn-primary">Crear perfil de donante</a>
           </app-empty-state>
         </div>
+      } @else {
+        <div class="mt-8 grid gap-4 sm:grid-cols-3">
+          <article class="rounded-2xl bg-brand-600 p-6 text-white">
+            <p class="text-sm text-brand-100">Donaciones completadas</p>
+            <p class="mt-2 font-display text-4xl font-semibold">{{ history()?.totalDonations ?? 0 }}</p>
+          </article>
+          <article class="rounded-2xl bg-white p-6 shadow-sm">
+            <p class="text-sm text-ink-500">Unidades donadas</p>
+            <p class="mt-2 font-display text-4xl font-semibold">{{ history()?.totalUnits ?? 0 }}</p>
+          </article>
+          <article class="rounded-2xl bg-ink-950 p-6 text-white">
+            <p class="text-sm text-ink-300">Próxima fecha estimada</p>
+            <p class="mt-2 text-xl font-bold">
+              {{ history()?.estimatedNextDate ? (history()!.estimatedNextDate | date: 'mediumDate') : 'Consulta en el centro' }}
+            </p>
+          </article>
+        </div>
+        @if (history()?.orientationNote) {
+          <p class="mt-6 rounded-xl border-l-4 border-amber-400 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900">
+            {{ history()!.orientationNote }}
+          </p>
+        }
+
+        <section class="mt-10">
+          <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p class="eyebrow">Seguimiento</p>
+              <h2 class="font-display text-3xl font-semibold">Mis ofrecimientos</h2>
+              <p class="mt-1 text-sm text-ink-600">
+                Respuestas que enviaste con “Quiero ayudar”.
+              </p>
+            </div>
+            <a routerLink="/solicitudes" class="text-sm font-bold text-brand-700">Buscar solicitudes →</a>
+          </div>
+
+          @if (responses().length) {
+            <div class="mt-6 grid gap-4">
+              @for (response of responses(); track response.id) {
+                <article class="rounded-2xl border border-ink-100 bg-white p-5 shadow-sm">
+                  <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        @if (response.requestBloodType) {
+                          <span class="text-lg font-black text-brand-700">{{ response.requestBloodType }}</span>
+                        }
+                        <app-badge [tone]="responseTone(response.status)">
+                          {{ responseLabels[response.status] }}
+                        </app-badge>
+                      </div>
+                      <h3 class="mt-2 text-lg font-bold">{{ response.hospital || 'Solicitud de sangre' }}</h3>
+                      <p class="mt-1 text-sm text-ink-500">
+                        {{ locationOf(response) }}
+                        · {{ response.createdAt | date: 'mediumDate' }}
+                      </p>
+                      @if (response.message) {
+                        <p class="mt-3 text-sm leading-relaxed text-ink-600">“{{ response.message }}”</p>
+                      }
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <a [routerLink]="['/solicitudes', response.bloodRequestId]" class="btn-secondary">
+                        Ver solicitud
+                      </a>
+                      @if (response.status === 'ACCEPTED') {
+                        <button
+                          type="button"
+                          class="btn-primary"
+                          [disabled]="busyId() === response.id"
+                          (click)="complete(response)"
+                        >
+                          {{ busyId() === response.id ? 'Registrando…' : 'Marcar donada' }}
+                        </button>
+                      }
+                      @if (response.status === 'PENDING' || response.status === 'ACCEPTED') {
+                        <button
+                          type="button"
+                          class="btn-secondary !text-brand-700"
+                          [disabled]="busyId() === response.id"
+                          (click)="cancel(response)"
+                        >
+                          Cancelar
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="mt-6">
+              <app-empty-state
+                title="Aún no has ofrecido ayuda"
+                message="Cuando respondas una solicitud con “Quiero ayudar”, aparecerá aquí para que puedas darle seguimiento."
+              >
+                <a routerLink="/solicitudes" class="btn-primary">Ver solicitudes abiertas</a>
+              </app-empty-state>
+            </div>
+          }
+        </section>
+
+        <section class="mt-12">
+          <p class="eyebrow">Confirmadas</p>
+          <h2 class="font-display text-3xl font-semibold">Historial de donaciones</h2>
+          @if (history()?.history?.length) {
+            <div class="mt-6 grid gap-4 md:grid-cols-2">
+              @for (donation of history()!.history; track donation.id) {
+                <app-donation-card [donation]="donation" />
+              }
+            </div>
+          } @else {
+            <div class="mt-6">
+              <app-empty-state
+                title="No hay donaciones registradas"
+                message="Tu historial aparecerá cuando un centro o el solicitante confirme una donación."
+              >
+                <a routerLink="/centros" class="btn-primary">Buscar un centro</a>
+              </app-empty-state>
+            </div>
+          }
+        </section>
       }
     }
   `,
 })
 export class MyDonationsPage implements OnInit {
+  readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   readonly history = signal<DonationHistory | null>(null);
+  readonly responses = signal<DonationResponse[]>([]);
   readonly loading = signal(true);
+  readonly busyId = signal<number | null>(null);
+  readonly responseLabels: Record<ResponseStatus, string> = {
+    PENDING: 'Pendiente',
+    ACCEPTED: 'Aceptada',
+    REJECTED: 'No seleccionada',
+    COMPLETED: 'Completada',
+    CANCELLED: 'Cancelada',
+  };
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
     this.api.donationHistory().subscribe({
       next: (history) => this.history.set(history),
+      error: (error) => this.toast.error(apiErrorMessage(error)),
+    });
+    this.api.myDonationResponses().subscribe({
+      next: (responses) => this.responses.set(responses),
       error: (error) => {
         this.loading.set(false);
         this.toast.error(apiErrorMessage(error));
       },
       complete: () => this.loading.set(false),
+    });
+  }
+
+  responseTone(status: ResponseStatus): 'green' | 'amber' | 'red' | 'neutral' {
+    if (status === 'COMPLETED' || status === 'ACCEPTED') return 'green';
+    if (status === 'PENDING') return 'amber';
+    if (status === 'REJECTED' || status === 'CANCELLED') return 'red';
+    return 'neutral';
+  }
+
+  locationOf(response: DonationResponse): string {
+    return [response.municipalityName, response.provinceName].filter(Boolean).join(', ') || 'República Dominicana';
+  }
+
+  complete(response: DonationResponse): void {
+    if (!window.confirm('¿Confirmas que esta donación ya se realizó en un centro autorizado?')) return;
+    this.busyId.set(response.id);
+    this.api.completeDonationResponse(response.id).subscribe({
+      next: () => {
+        this.toast.success('La donación fue registrada en tu historial.');
+        this.load();
+      },
+      error: (error) => {
+        this.busyId.set(null);
+        this.toast.error(apiErrorMessage(error));
+      },
+      complete: () => this.busyId.set(null),
+    });
+  }
+
+  cancel(response: DonationResponse): void {
+    if (!window.confirm('¿Quieres cancelar este ofrecimiento?')) return;
+    this.busyId.set(response.id);
+    this.api.cancelDonationResponse(response.id).subscribe({
+      next: () => {
+        this.toast.success('El ofrecimiento fue cancelado.');
+        this.load();
+      },
+      error: (error) => {
+        this.busyId.set(null);
+        this.toast.error(apiErrorMessage(error));
+      },
+      complete: () => this.busyId.set(null),
     });
   }
 }

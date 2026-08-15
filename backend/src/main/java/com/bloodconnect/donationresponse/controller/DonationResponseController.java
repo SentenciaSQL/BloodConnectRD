@@ -45,6 +45,13 @@ public class DonationResponseController {
         return ResponseEntity.ok(responseService.listForRequest(id, principal));
     }
 
+    @GetMapping("/donation-responses/me")
+    public ResponseEntity<List<DonationResponseDto>> mine(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(responseService.mine(principal));
+    }
+
     @PatchMapping("/donation-responses/{id}/accept")
     public ResponseEntity<DonationResponseDto> accept(
             @PathVariable Long id,

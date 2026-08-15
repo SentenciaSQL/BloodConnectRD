@@ -286,6 +286,54 @@ class DonationModel {
   final String notes;
 }
 
+class DonationResponseModel {
+  const DonationResponseModel({
+    required this.id,
+    required this.bloodRequestId,
+    required this.status,
+    required this.message,
+    required this.createdAt,
+    this.hospital,
+    this.requestBloodType,
+    this.municipalityName,
+    this.provinceName,
+  });
+
+  factory DonationResponseModel.fromJson(JsonMap json) =>
+      DonationResponseModel(
+        id: (json['id'] as num).toInt(),
+        bloodRequestId: (json['bloodRequestId'] as num).toInt(),
+        status: json['status']?.toString() ?? '',
+        message: json['message']?.toString() ?? '',
+        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+        hospital: json['hospital']?.toString(),
+        requestBloodType: json['requestBloodType']?.toString(),
+        municipalityName: json['municipalityName']?.toString(),
+        provinceName: json['provinceName']?.toString(),
+      );
+
+  final int id;
+  final int bloodRequestId;
+  final String status;
+  final String message;
+  final DateTime? createdAt;
+  final String? hospital;
+  final String? requestBloodType;
+  final String? municipalityName;
+  final String? provinceName;
+
+  bool get canComplete => status == 'ACCEPTED';
+  bool get canCancel => status == 'PENDING' || status == 'ACCEPTED';
+
+  String get location {
+    final parts = [
+      municipalityName,
+      provinceName,
+    ].where((value) => value != null && value.isNotEmpty);
+    return parts.isEmpty ? 'República Dominicana' : parts.join(', ');
+  }
+}
+
 class DonationHistory {
   const DonationHistory({
     required this.totalDonations,
