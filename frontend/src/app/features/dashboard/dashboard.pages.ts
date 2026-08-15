@@ -140,7 +140,7 @@ export class DashboardHomePage implements OnInit {
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [ReactiveFormsModule, BadgeComponent, LoadingSpinnerComponent],
+  imports: [ReactiveFormsModule, RouterLink, BadgeComponent, LoadingSpinnerComponent],
   template: `
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -171,6 +171,10 @@ export class DashboardHomePage implements OnInit {
           <dd class="mt-1 font-semibold">{{ auth.user()?.role === 'DONOR' ? 'Donante' : 'Usuario' }}</dd>
         </div>
       </dl>
+      <p class="mt-6 text-sm text-ink-500">
+        ¿Quieres eliminar tu cuenta?
+        <a routerLink="/eliminacion-de-cuenta" class="font-bold text-brand-700">Consulta el proceso</a>.
+      </p>
     </section>
 
     @if (loading()) {

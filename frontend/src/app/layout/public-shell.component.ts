@@ -155,6 +155,9 @@ import { AuthService } from '../core/services/auth.service';
               >
               <a routerLink="/como-donar" class="hover:text-white">Guía para donar</a>
               <a routerLink="/compatibilidad" class="hover:text-white">Compatibilidad sanguínea</a>
+              <a routerLink="/eliminacion-de-cuenta" class="hover:text-white"
+                >Eliminación de cuenta</a
+              >
             </div>
           </div>
           <div>
@@ -192,6 +195,7 @@ export class PublicShellComponent {
     { path: '/compatibilidad', label: 'Compatibilidad' },
     { path: '/como-donar', label: 'Cómo donar' },
     { path: '/preguntas-frecuentes', label: 'Preguntas frecuentes' },
+    { path: '/eliminacion-de-cuenta', label: 'Eliminación de cuenta' },
   ];
 
   toggleMenu(): void {
