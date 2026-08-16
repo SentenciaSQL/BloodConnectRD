@@ -59,6 +59,7 @@ mobile/android/local.properties
 mobile/android/app/debug/
 mobile/android/app/profile/
 mobile/android/app/release/
+mobile/android/app/bloodconnect-release-key.jks
 mobile/android/**/captures/
 mobile/ios/Pods/
 mobile/ios/.symlinks/

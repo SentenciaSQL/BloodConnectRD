@@ -38,6 +38,11 @@ import { RouterLink } from '@angular/router';
         }
       </div>
 
+      <p class="mt-6 text-sm text-ink-600">
+        Si quieres borrar tu cuenta,
+        <a routerLink="/eliminacion-de-cuenta" class="font-bold text-brand-700">consulta cómo solicitar la eliminación</a>.
+      </p>
+
       <div class="mt-12 rounded-3xl bg-ink-950 p-8 text-white sm:flex sm:items-center sm:justify-between sm:gap-8">
         <div>
           <h2 class="font-display text-2xl font-semibold">¿Listo para ayudar?</h2>
@@ -80,6 +85,11 @@ export class FaqPage {
       question: '¿La tabla de compatibilidad garantiza que puedo donar?',
       answer:
         'No. Es una guía educativa para glóbulos rojos. El centro debe realizar tipificación, pruebas cruzadas y una evaluación clínica antes de aceptar una donación.',
+    },
+    {
+      question: '¿Cómo elimino mi cuenta?',
+      answer:
+        'Puedes solicitar la eliminación permanente de tu cuenta y de los datos asociados desde la página de eliminación de cuenta. Te pediremos verificar el correo electrónico registrado antes de proceder.',
     },
   ];
 

@@ -66,6 +66,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/faq/faq.page').then((component) => component.FaqPage),
       },
+      {
+        path: 'eliminacion-de-cuenta',
+        loadComponent: () =>
+          import('./features/account-deletion/account-deletion.page').then(
+            (component) => component.AccountDeletionPage,
+          ),
+      },
     ],
   },
   {

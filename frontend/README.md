@@ -27,7 +27,7 @@ npm run build
 
 ## Rutas
 
-**Públicas:** `/`, `/login`, `/registro`, `/donantes`, `/solicitudes`, `/solicitudes/:id`, `/centros`, `/como-donar`, `/compatibilidad`, `/preguntas-frecuentes`
+**Públicas:** `/`, `/login`, `/registro`, `/donantes`, `/solicitudes`, `/solicitudes/:id`, `/centros`, `/como-donar`, `/compatibilidad`, `/preguntas-frecuentes`, `/eliminacion-de-cuenta`
 
 **Privadas:** `/dashboard`, `/dashboard/perfil`, `/dashboard/solicitudes`, `/dashboard/donaciones`, `/dashboard/notificaciones`
 
