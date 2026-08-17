@@ -105,7 +105,17 @@ class RequestCard extends StatelessWidget {
               const SizedBox(height: 4),
               _IconText(
                 Icons.water_drop_outlined,
-                '${request.completedUnits} de ${request.unitsRequired} unidades completadas',
+                request.progressLabel,
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: request.unitsRequired == 0
+                      ? 0
+                      : request.progressPercent / 100,
+                  minHeight: 8,
+                ),
               ),
               if (request.distanceKm != null) ...[
                 const SizedBox(height: 4),
@@ -143,13 +153,21 @@ class DonationCard extends StatelessWidget {
               : donation.centerName,
         ),
         subtitle: Text(
-          '${formatDate(donation.date, short: true)} · ${donation.units} ${donation.units == 1 ? 'unidad' : 'unidades'}',
+          '${formatDate(donation.date, short: true)} · ${donation.confirmedUnits} de ${donation.units} ${donation.units == 1 ? 'unidad' : 'unidades'}',
         ),
         trailing: Icon(
-          donation.status == 'COMPLETED'
+          donation.status == 'CONFIRMED' || donation.status == 'COMPLETED'
               ? Icons.check_circle
+              : donation.status == 'PARTIALLY_CONFIRMED'
+              ? Icons.timelapse
+              : donation.status == 'REPORTED'
+              ? Icons.hourglass_empty
               : Icons.cancel_outlined,
-          color: donation.status == 'COMPLETED' ? Colors.green : Colors.grey,
+          color: donation.status == 'CONFIRMED' || donation.status == 'COMPLETED'
+              ? Colors.green
+              : donation.status == 'PARTIALLY_CONFIRMED'
+              ? Colors.orange
+              : Colors.grey,
         ),
       ),
     );

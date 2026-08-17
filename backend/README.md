@@ -49,6 +49,7 @@ mvn clean package -DskipTests
 | V10 | device_tokens |
 | V11 | indexes |
 | V12 | seed desarrollo |
+| V13 | confirmación de donaciones (unidades reportadas/confirmadas) |
 
 No modificar migraciones ya aplicadas; crear una nueva si el esquema cambia.
 

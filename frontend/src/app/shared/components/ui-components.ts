@@ -8,6 +8,10 @@ import {
   Donation,
   DonationCenter,
   Urgency,
+  donationStatusLabel,
+  donationStatusTone,
+  requestPendingUnits,
+  requestProgressPercent,
 } from '../../core/models/api.models';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -216,6 +220,16 @@ export class UrgencyBadgeComponent {
           <dd class="font-bold text-ink-900">{{ request().deadline | date: 'd MMM' }}</dd>
         </div>
       </dl>
+      <div class="mt-4 h-2 overflow-hidden rounded-full bg-ink-100">
+        <div
+          class="h-full rounded-full bg-brand-600"
+          [style.width.%]="progressPercent()"
+        ></div>
+      </div>
+      <p class="mt-2 text-xs text-ink-500">
+        {{ request().completedUnits }} de {{ request().unitsRequired }} unidades
+        ({{ progressPercent() }}%)
+      </p>
       <a
         [routerLink]="['/solicitudes', request().id]"
         class="mt-auto pt-4 text-sm font-bold text-brand-700 hover:text-brand-900"
@@ -227,6 +241,10 @@ export class UrgencyBadgeComponent {
 })
 export class RequestCardComponent {
   readonly request = input.required<BloodRequest>();
+
+  progressPercent(): number {
+    return requestProgressPercent(this.request());
+  }
 }
 
 @Component({
@@ -242,18 +260,21 @@ export class RequestCardComponent {
             {{ donation().donationCenterName || 'Donación vinculada a solicitud' }}
           </h3>
         </div>
-        <app-badge [tone]="donation().status === 'COMPLETED' ? 'green' : 'red'">
-          {{ donation().status === 'COMPLETED' ? 'Completada' : 'Cancelada' }}
+        <app-badge [tone]="donationStatusTone(donation().status)">
+          {{ donationStatusLabel(donation().status) }}
         </app-badge>
       </div>
       <p class="mt-3 text-sm text-ink-600">
-        {{ donation().units }} {{ donation().units === 1 ? 'unidad registrada' : 'unidades registradas' }}
+        {{ donation().confirmedUnits }} de {{ donation().units }}
+        {{ donation().units === 1 ? 'unidad confirmada' : 'unidades confirmadas' }}
       </p>
     </article>
   `,
 })
 export class DonationCardComponent {
   readonly donation = input.required<Donation>();
+  readonly donationStatusLabel = donationStatusLabel;
+  readonly donationStatusTone = donationStatusTone;
 }
 
 @Component({
@@ -296,6 +317,54 @@ export class DonationCenterCardComponent {
     MEDICAL_CENTER: 'Centro médico',
     OTHER: 'Otro centro',
   };
+}
+
+@Component({
+  selector: 'app-request-progress',
+  standalone: true,
+  template: `
+    <section [class]="compact() ? '' : 'rounded-2xl border border-ink-100 bg-ink-50 p-5'">
+      <dl class="grid gap-4 sm:grid-cols-4">
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades requeridas</dt>
+          <dd class="mt-1 text-xl font-bold text-ink-950">{{ request().unitsRequired }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades recibidas</dt>
+          <dd class="mt-1 text-xl font-bold text-ink-950">{{ request().completedUnits }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades pendientes</dt>
+          <dd class="mt-1 text-xl font-bold text-ink-950">{{ pendingUnits() }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Progreso</dt>
+          <dd class="mt-1 text-xl font-bold text-brand-700">{{ progressPercent() }}%</dd>
+        </div>
+      </dl>
+      <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-ink-100">
+        <div
+          class="h-full rounded-full bg-brand-600 transition-[width]"
+          [style.width.%]="progressPercent()"
+        ></div>
+      </div>
+      <p class="mt-2 text-sm font-medium text-ink-600">
+        {{ request().completedUnits }} de {{ request().unitsRequired }} unidades ({{ progressPercent() }}%)
+      </p>
+    </section>
+  `,
+})
+export class RequestProgressComponent {
+  readonly request = input.required<BloodRequest>();
+  readonly compact = input(false);
+
+  pendingUnits(): number {
+    return requestPendingUnits(this.request());
+  }
+
+  progressPercent(): number {
+    return requestProgressPercent(this.request());
+  }
 }
 
 @Component({

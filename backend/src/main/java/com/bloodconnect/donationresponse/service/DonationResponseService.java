@@ -3,19 +3,16 @@ package com.bloodconnect.donationresponse.service;
 import com.bloodconnect.bloodrequest.entity.BloodRequest;
 import com.bloodconnect.bloodrequest.repository.BloodRequestRepository;
 import com.bloodconnect.bloodrequest.service.BloodRequestService;
-import com.bloodconnect.common.enums.DonationStatus;
 import com.bloodconnect.common.enums.NotificationType;
 import com.bloodconnect.common.enums.RequestStatus;
 import com.bloodconnect.common.enums.ResponseStatus;
 import com.bloodconnect.common.enums.Role;
-import com.bloodconnect.donation.entity.Donation;
-import com.bloodconnect.donation.repository.DonationRepository;
+import com.bloodconnect.donation.service.DonationService;
 import com.bloodconnect.donationresponse.dto.CreateDonationResponseRequest;
 import com.bloodconnect.donationresponse.dto.DonationResponseDto;
 import com.bloodconnect.donationresponse.entity.DonationResponse;
 import com.bloodconnect.donationresponse.repository.DonationResponseRepository;
 import com.bloodconnect.donor.entity.Donor;
-import com.bloodconnect.donor.repository.DonorRepository;
 import com.bloodconnect.donor.service.DonorService;
 import com.bloodconnect.exception.BadRequestException;
 import com.bloodconnect.exception.ConflictException;
@@ -41,10 +38,9 @@ public class DonationResponseService {
 
     private final DonationResponseRepository responseRepository;
     private final BloodRequestRepository bloodRequestRepository;
-    private final DonationRepository donationRepository;
-    private final DonorRepository donorRepository;
     private final BloodRequestService bloodRequestService;
     private final DonorService donorService;
+    private final DonationService donationService;
     private final NotificationService notificationService;
 
     @Transactional
@@ -139,51 +135,26 @@ public class DonationResponseService {
     }
 
     @Transactional
-    public DonationResponseDto complete(Long id, UserPrincipal principal) {
+    public DonationResponseDto complete(Long id, UserPrincipal principal, int units) {
         DonationResponse response = find(id);
         requireDonorRequestOwnerOrAdmin(response, principal);
         requireStatus(response, ResponseStatus.ACCEPTED, "Solo se pueden completar respuestas aceptadas");
-
-        LocalDate today = LocalDate.now();
-        Donation donation = donationRepository.save(Donation.builder()
-                .donor(response.getDonor())
-                .bloodRequest(response.getBloodRequest())
-                .donationDate(today)
-                .units(1)
-                .notes("Donación registrada al completar la respuesta")
-                .status(DonationStatus.COMPLETED)
-                .build());
-        response.setStatus(ResponseStatus.COMPLETED);
-        response.getDonor().setLastDonationDate(today);
-        donorRepository.save(response.getDonor());
-
-        long completedUnits = donationRepository.sumUnitsByRequestAndStatus(
-                response.getBloodRequest().getId(),
-                DonationStatus.COMPLETED
+        donationService.reportForDonor(
+                response.getBloodRequest(),
+                response.getDonor(),
+                units,
+                LocalDate.now(),
+                "Donación reportada al completar la respuesta"
         );
-        if (completedUnits >= response.getBloodRequest().getUnitsRequired()) {
-            response.getBloodRequest().setStatus(RequestStatus.FULFILLED);
-            notificationService.create(
-                    response.getBloodRequest().getCreatedBy(),
-                    NotificationType.REQUEST_FULFILLED,
-                    "Solicitud completada",
-                    "Se alcanzaron las unidades requeridas para su solicitud.",
-                    "BLOOD_REQUEST",
-                    response.getBloodRequest().getId()
-            );
-        } else {
-            response.getBloodRequest().setStatus(RequestStatus.IN_PROGRESS);
-        }
-        bloodRequestRepository.save(response.getBloodRequest());
         notificationService.create(
                 response.getDonor().getUser(),
                 NotificationType.RESPONSE_COMPLETED,
-                "Donación registrada",
-                "Su donación fue registrada correctamente.",
-                "DONATION",
-                donation.getId()
+                "Donación reportada",
+                "Su donación fue reportada. El solicitante confirmará las unidades recibidas.",
+                "BLOOD_REQUEST",
+                response.getBloodRequest().getId()
         );
-        return toDto(responseRepository.save(response));
+        return toDto(find(id));
     }
 
     @Transactional

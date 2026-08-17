@@ -1,5 +1,6 @@
 package com.bloodconnect.donationresponse.controller;
 
+import com.bloodconnect.donationresponse.dto.CompleteDonationResponseRequest;
 import com.bloodconnect.donationresponse.dto.CreateDonationResponseRequest;
 import com.bloodconnect.donationresponse.dto.DonationResponseDto;
 import com.bloodconnect.donationresponse.service.DonationResponseService;
@@ -64,9 +65,11 @@ public class DonationResponseController {
     @PatchMapping("/donation-responses/{id}/complete")
     public ResponseEntity<DonationResponseDto> complete(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserPrincipal principal
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody(required = false) CompleteDonationResponseRequest request
     ) {
-        return ResponseEntity.ok(responseService.complete(id, principal));
+        int units = request == null || request.units() == null ? 1 : request.units();
+        return ResponseEntity.ok(responseService.complete(id, principal, units));
     }
 
     @PatchMapping("/donation-responses/{id}/cancel")

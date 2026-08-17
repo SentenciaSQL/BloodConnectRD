@@ -24,6 +24,7 @@ import {
   Province,
   Sex,
   Urgency,
+  requestProgressPercent,
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage, AuthService } from '../../core/services/auth.service';
@@ -493,11 +494,12 @@ export class ProfilePage implements OnInit {
             <div class="mt-4 h-2 overflow-hidden rounded-full bg-ink-100">
               <div
                 class="h-full rounded-full bg-brand-600"
-                [style.width.%]="(request.completedUnits / request.unitsRequired) * 100"
+                [style.width.%]="progressPercent(request)"
               ></div>
             </div>
-            <p class="mt-2 text-xs text-ink-500">
-              {{ request.completedUnits }} de {{ request.unitsRequired }} unidades completadas
+            <p class="mt-2 text-xs font-medium text-ink-600">
+              {{ request.completedUnits }} de {{ request.unitsRequired }} unidades
+              ({{ progressPercent(request) }}%)
             </p>
           </article>
         }
@@ -733,6 +735,10 @@ export class MyRequestsPage implements OnInit {
       },
       error: (error) => this.toast.error(apiErrorMessage(error)),
     });
+  }
+
+  progressPercent(request: BloodRequest): number {
+    return requestProgressPercent(request);
   }
 }
 

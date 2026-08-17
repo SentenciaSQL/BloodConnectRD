@@ -161,10 +161,13 @@ class DonorProfile {
 class BloodRequestModel {
   const BloodRequestModel({
     required this.id,
+    required this.createdById,
     required this.patientName,
     required this.bloodType,
     required this.unitsRequired,
     required this.completedUnits,
+    required this.pendingUnits,
+    required this.progressPercent,
     required this.hospital,
     required this.provinceName,
     required this.municipalityName,
@@ -177,29 +180,49 @@ class BloodRequestModel {
     this.distanceKm,
   });
 
-  factory BloodRequestModel.fromJson(JsonMap json) => BloodRequestModel(
-    id: (json['id'] as num).toInt(),
-    patientName: json['patientName']?.toString() ?? '',
-    bloodType: json['bloodType']?.toString() ?? '',
-    unitsRequired: (json['unitsRequired'] as num?)?.toInt() ?? 0,
-    completedUnits: (json['completedUnits'] as num?)?.toInt() ?? 0,
-    hospital: json['hospital']?.toString() ?? '',
-    provinceName: json['provinceName']?.toString() ?? '',
-    municipalityName: json['municipalityName']?.toString() ?? '',
-    address: json['address']?.toString() ?? '',
-    deadline: DateTime.tryParse(json['deadline']?.toString() ?? ''),
-    description: json['description']?.toString() ?? '',
-    contactPhone: json['contactPhone']?.toString() ?? '',
-    urgency: json['urgency']?.toString() ?? 'LOW',
-    status: json['status']?.toString() ?? 'OPEN',
-    distanceKm: (json['approximateDistanceKm'] as num?)?.toDouble(),
-  );
+  factory BloodRequestModel.fromJson(JsonMap json) {
+    final unitsRequired = (json['unitsRequired'] as num?)?.toInt() ?? 0;
+    final completedUnits = (json['completedUnits'] as num?)?.toInt() ?? 0;
+    final computedPending = unitsRequired - completedUnits;
+    final pendingUnits =
+        (json['pendingUnits'] as num?)?.toInt() ??
+        (computedPending < 0 ? 0 : computedPending);
+    final computedPercent = unitsRequired == 0
+        ? 0
+        : ((completedUnits * 100) / unitsRequired).round();
+    final progressPercent =
+        (json['progressPercent'] as num?)?.toInt() ??
+        (computedPercent < 0 ? 0 : (computedPercent > 100 ? 100 : computedPercent));
+    return BloodRequestModel(
+      id: (json['id'] as num).toInt(),
+      createdById: (json['createdById'] as num?)?.toInt() ?? 0,
+      patientName: json['patientName']?.toString() ?? '',
+      bloodType: json['bloodType']?.toString() ?? '',
+      unitsRequired: unitsRequired,
+      completedUnits: completedUnits,
+      pendingUnits: pendingUnits,
+      progressPercent: progressPercent,
+      hospital: json['hospital']?.toString() ?? '',
+      provinceName: json['provinceName']?.toString() ?? '',
+      municipalityName: json['municipalityName']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      deadline: DateTime.tryParse(json['deadline']?.toString() ?? ''),
+      description: json['description']?.toString() ?? '',
+      contactPhone: json['contactPhone']?.toString() ?? '',
+      urgency: json['urgency']?.toString() ?? 'LOW',
+      status: json['status']?.toString() ?? 'OPEN',
+      distanceKm: (json['approximateDistanceKm'] as num?)?.toDouble(),
+    );
+  }
 
   final int id;
+  final int createdById;
   final String patientName;
   final String bloodType;
   final int unitsRequired;
   final int completedUnits;
+  final int pendingUnits;
+  final int progressPercent;
   final String hospital;
   final String provinceName;
   final String municipalityName;
@@ -215,6 +238,9 @@ class BloodRequestModel {
     municipalityName,
     provinceName,
   ].where((part) => part.isNotEmpty).join(', ');
+
+  String get progressLabel =>
+      '$completedUnits de $unitsRequired unidades ($progressPercent%)';
 }
 
 class DonationCenterModel {
@@ -262,28 +288,49 @@ class DonationCenterModel {
 class DonationModel {
   const DonationModel({
     required this.id,
+    required this.donorUserId,
+    required this.donorName,
     required this.centerName,
     required this.date,
     required this.units,
+    required this.confirmedUnits,
     required this.status,
     required this.notes,
   });
 
   factory DonationModel.fromJson(JsonMap json) => DonationModel(
     id: (json['id'] as num).toInt(),
+    donorUserId: (json['donorUserId'] as num?)?.toInt() ?? 0,
+    donorName: json['donorName']?.toString() ?? '',
     centerName: json['donationCenterName']?.toString() ?? '',
     date: DateTime.tryParse(json['donationDate']?.toString() ?? ''),
     units: (json['units'] as num?)?.toInt() ?? 0,
+    confirmedUnits: (json['confirmedUnits'] as num?)?.toInt() ?? 0,
     status: json['status']?.toString() ?? '',
     notes: json['notes']?.toString() ?? '',
   );
 
   final int id;
+  final int donorUserId;
+  final String donorName;
   final String centerName;
   final DateTime? date;
   final int units;
+  final int confirmedUnits;
   final String status;
   final String notes;
+
+  bool get isPendingConfirmation =>
+      status == 'REPORTED' || status == 'PARTIALLY_CONFIRMED';
+
+  String get statusLabel => switch (status) {
+    'REPORTED' => 'Reportada',
+    'PARTIALLY_CONFIRMED' => 'Confirmada parcialmente',
+    'CONFIRMED' => 'Confirmada',
+    'CANCELLED' => 'Cancelada',
+    'COMPLETED' => 'Completada',
+    _ => status,
+  };
 }
 
 class DonationHistory {

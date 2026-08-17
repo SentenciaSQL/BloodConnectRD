@@ -17,6 +17,9 @@ import {
   Province,
   Role,
   User,
+  donationStatusLabel,
+  donationStatusTone,
+  requestProgressPercent,
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage } from '../../core/services/auth.service';
@@ -423,7 +426,10 @@ export class AdminDonorsPage implements OnInit {
                 </td>
                 <td class="px-5 py-4 text-lg font-black text-brand-700">{{ request.bloodType }}</td>
                 <td class="px-5 py-4">{{ request.municipalityName }}, {{ request.provinceName }}</td>
-                <td class="px-5 py-4">{{ request.completedUnits }}/{{ request.unitsRequired }}</td>
+                <td class="px-5 py-4">
+                  {{ request.completedUnits }} de {{ request.unitsRequired }}
+                  ({{ progressPercent(request) }}%)
+                </td>
                 <td class="px-5 py-4">{{ request.deadline | date: 'mediumDate' }}</td>
                 <td class="px-5 py-4"><app-badge>{{ statusLabels[request.status] }}</app-badge></td>
                 <td class="px-5 py-4">
@@ -472,6 +478,10 @@ export class AdminRequestsPage implements OnInit {
       complete: () => this.loading.set(false),
     });
   }
+
+  progressPercent(request: BloodRequest): number {
+    return requestProgressPercent(request);
+  }
 }
 
 @Component({
@@ -495,6 +505,7 @@ export class AdminRequestsPage implements OnInit {
               <th class="px-5 py-4">Centro</th>
               <th class="px-5 py-4">Fecha</th>
               <th class="px-5 py-4">Unidades</th>
+              <th class="px-5 py-4">Confirmadas</th>
               <th class="px-5 py-4">Estado</th>
             </tr>
           </thead>
@@ -505,9 +516,10 @@ export class AdminRequestsPage implements OnInit {
                 <td class="px-5 py-4">{{ donation.donationCenterName || 'Vinculada a solicitud' }}</td>
                 <td class="px-5 py-4">{{ donation.donationDate | date: 'mediumDate' }}</td>
                 <td class="px-5 py-4">{{ donation.units }}</td>
+                <td class="px-5 py-4">{{ donation.confirmedUnits }}</td>
                 <td class="px-5 py-4">
-                  <app-badge [tone]="donation.status === 'COMPLETED' ? 'green' : 'red'">
-                    {{ donation.status === 'COMPLETED' ? 'Completada' : 'Cancelada' }}
+                  <app-badge [tone]="statusTone(donation.status)">
+                    {{ statusLabel(donation.status) }}
                   </app-badge>
                 </td>
               </tr>
@@ -543,6 +555,14 @@ export class AdminDonationsPage implements OnInit {
       },
       complete: () => this.loading.set(false),
     });
+  }
+
+  statusLabel(status: string): string {
+    return donationStatusLabel(status);
+  }
+
+  statusTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
+    return donationStatusTone(status);
   }
 }
 
