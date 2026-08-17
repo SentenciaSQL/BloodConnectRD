@@ -13,6 +13,7 @@ import com.bloodconnect.donationresponse.dto.DonationResponseDto;
 import com.bloodconnect.donationresponse.entity.DonationResponse;
 import com.bloodconnect.donationresponse.repository.DonationResponseRepository;
 import com.bloodconnect.donor.entity.Donor;
+import com.bloodconnect.donor.repository.DonorRepository;
 import com.bloodconnect.donor.service.DonorService;
 import com.bloodconnect.exception.BadRequestException;
 import com.bloodconnect.exception.ConflictException;
@@ -40,6 +41,7 @@ public class DonationResponseService {
     private final BloodRequestRepository bloodRequestRepository;
     private final BloodRequestService bloodRequestService;
     private final DonorService donorService;
+    private final DonorRepository donorRepository;
     private final DonationService donationService;
     private final NotificationService notificationService;
 
@@ -63,7 +65,7 @@ public class DonationResponseService {
                 donor.getId(),
                 ACTIVE_STATUSES
         )) {
-            throw new ConflictException("Ya tiene una respuesta activa para esta solicitud");
+            throw new ConflictException("Ya ofreciste ayudar con esta solicitud");
         }
         DonationResponse response = DonationResponse.builder()
                 .bloodRequest(bloodRequest)
@@ -74,13 +76,14 @@ public class DonationResponseService {
         try {
             response = responseRepository.saveAndFlush(response);
         } catch (DataIntegrityViolationException exception) {
-            throw new ConflictException("Ya tiene una respuesta activa para esta solicitud");
+            throw new ConflictException("Ya ofreciste ayudar con esta solicitud");
         }
+        String donorName = donor.getUser().getFirstName() + " " + donor.getUser().getLastName();
         notificationService.create(
                 bloodRequest.getCreatedBy(),
                 NotificationType.RESPONSE_RECEIVED,
-                "Nueva respuesta de donación",
-                "Un donante respondió a su solicitud de sangre.",
+                donorName + " quiere ayudar",
+                donorName + " quiere ayudar con tu solicitud de sangre.",
                 "BLOOD_REQUEST",
                 bloodRequest.getId()
         );
@@ -90,10 +93,20 @@ public class DonationResponseService {
     @Transactional(readOnly = true)
     public List<DonationResponseDto> listForRequest(Long requestId, UserPrincipal principal) {
         BloodRequest request = bloodRequestService.findEntity(requestId);
-        bloodRequestService.requireOwnerOrAdmin(request, principal);
-        return responseRepository.findByBloodRequestIdOrderByCreatedAtDesc(requestId).stream()
-                .map(this::toDto)
-                .toList();
+        boolean ownerOrAdmin = principal.getRole() == Role.ADMIN
+                || request.getCreatedBy().getId().equals(principal.getId());
+        if (ownerOrAdmin) {
+            return responseRepository.findByBloodRequestIdOrderByCreatedAtDesc(requestId).stream()
+                    .map(this::toDto)
+                    .toList();
+        }
+        return donorRepository.findByUserId(principal.getId())
+                .map(donor -> responseRepository
+                        .findByBloodRequestIdAndDonorIdOrderByCreatedAtDesc(requestId, donor.getId())
+                        .stream()
+                        .map(this::toDto)
+                        .toList())
+                .orElse(List.of());
     }
 
     @Transactional

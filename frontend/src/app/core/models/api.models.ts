@@ -9,6 +9,7 @@ export type DonationStatus =
   | 'CONFIRMED'
   | 'CANCELLED'
   | 'COMPLETED';
+export type ResponseStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 export type CenterType = 'HOSPITAL' | 'CLINIC' | 'BLOOD_BANK' | 'MEDICAL_CENTER' | 'OTHER';
 export type Sex = 'MALE' | 'FEMALE' | 'OTHER';
 
@@ -20,6 +21,14 @@ export const DONATION_STATUS_LABELS: Record<string, string> = {
   CONFIRMED: 'Confirmada',
   CANCELLED: 'Cancelada',
   COMPLETED: 'Confirmada',
+};
+
+export const RESPONSE_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Interesado en ayudar',
+  ACCEPTED: 'Interesado en ayudar',
+  REJECTED: 'No seleccionado',
+  COMPLETED: 'Donación reportada',
+  CANCELLED: 'Cancelado',
 };
 
 export interface User {
@@ -170,6 +179,20 @@ export interface DonationHistory {
   history: Donation[];
 }
 
+export interface DonationResponse {
+  id: number;
+  bloodRequestId: number;
+  donorId: number;
+  donorUserId: number;
+  donorName: string;
+  donorPhone?: string | null;
+  donorBloodType?: BloodType | string | null;
+  status: ResponseStatus | string;
+  message?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Notification {
   id: number;
   type: string;
@@ -262,6 +285,17 @@ export function requestProgressPercent(
 
 export function donationStatusLabel(status: string): string {
   return DONATION_STATUS_LABELS[status] ?? status;
+}
+
+export function responseStatusLabel(status: string): string {
+  return RESPONSE_STATUS_LABELS[status] ?? status;
+}
+
+export function responseStatusTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
+  if (status === 'ACCEPTED' || status === 'PENDING') return 'green';
+  if (status === 'COMPLETED') return 'amber';
+  if (status === 'REJECTED' || status === 'CANCELLED') return 'red';
+  return 'neutral';
 }
 
 export function donationStatusTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
