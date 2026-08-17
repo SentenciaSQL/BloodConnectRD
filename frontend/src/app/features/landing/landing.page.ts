@@ -53,10 +53,10 @@ import {
         </div>
         <div class="relative min-h-[440px] lg:min-h-full">
           <img
-            src="https://images.unsplash.com/photo-1615461066159-fe208ce68c0a?auto=format&fit=crop&w=1600&q=80"
+            src="/images/donation-hero.jpg"
             alt="Profesional de salud preparando una donación de sangre"
             width="1600"
-            height="1067"
+            height="944"
             fetchpriority="high"
             decoding="async"
             class="absolute inset-0 h-full w-full object-cover"
