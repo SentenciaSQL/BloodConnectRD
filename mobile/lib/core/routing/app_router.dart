@@ -19,9 +19,12 @@ import '../../features/messages/presentation/conversations_page.dart';
 import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh(ref);
   final router = GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/cargando',
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -52,16 +55,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
-        path: '/mensajes',
-        builder: (context, state) => const ConversationsPage(),
-        routes: [
-          GoRoute(
-            path: ':id',
-            builder: (context, state) => ConversationChatPage(
-              conversationId: int.parse(state.pathParameters['id']!),
-            ),
-          ),
-        ],
+        path: '/donar',
+        builder: (context, state) => const DonatePage(),
       ),
       GoRoute(
         path: '/donaciones',
@@ -104,8 +99,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/donar',
-                builder: (context, state) => const DonatePage(),
+                path: '/mensajes',
+                builder: (context, state) => const ConversationsPage(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => ConversationChatPage(
+                      conversationId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

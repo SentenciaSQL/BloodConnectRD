@@ -1,8 +1,11 @@
 package com.bloodconnect.conversation.entity;
 
 import com.bloodconnect.user.entity.User;
+import com.bloodconnect.common.enums.MessageStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -43,11 +46,24 @@ public class ConversationMessage {
     @Column(nullable = false, length = 2000)
     private String body;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private MessageStatus status;
+
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
+    @Column(name = "read_at")
+    private Instant readAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
+        if (status == null) {
+            status = MessageStatus.SENT;
+        }
     }
 }

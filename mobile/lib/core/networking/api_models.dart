@@ -528,6 +528,7 @@ class ChatMessageModel {
     required this.senderName,
     required this.body,
     required this.mine,
+    this.status = 'SENT',
     this.createdAt,
   });
 
@@ -538,6 +539,7 @@ class ChatMessageModel {
     senderName: json['senderName']?.toString() ?? '',
     body: json['body']?.toString() ?? '',
     mine: json['mine'] == true,
+    status: json['status']?.toString() ?? 'SENT',
     createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
   );
 
@@ -547,5 +549,12 @@ class ChatMessageModel {
   final String senderName;
   final String body;
   final bool mine;
+  final String status;
   final DateTime? createdAt;
+
+  String get statusMark => switch (status) {
+    'READ' => '✓✓',
+    'DELIVERED' => '✓✓',
+    _ => '✓',
+  };
 }

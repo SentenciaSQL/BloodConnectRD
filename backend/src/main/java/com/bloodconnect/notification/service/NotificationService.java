@@ -40,7 +40,7 @@ public class NotificationService {
                 .resourceId(resourceId)
                 .read(false)
                 .build());
-        pushNotificationService.sendToUser(user.getId(), title, message);
+        pushNotificationService.sendToUser(user.getId(), title, message, resourceType, resourceId);
         return notification;
     }
 

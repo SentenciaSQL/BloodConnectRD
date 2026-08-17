@@ -7,6 +7,7 @@ abstract final class ApiPaths {
   static const donations = '/api/donations';
   static const notifications = '/api/notifications';
   static const conversations = '/api/conversations';
+  static const messages = '/api/messages';
   static const devices = '/api/devices';
 }
 

@@ -172,7 +172,8 @@ GET  /api/conversations
 GET  /api/conversations/{id}
 GET  /api/conversations/{id}/messages
 POST /api/conversations/{id}/messages
-POST /api/conversations/{id}/read
+GET  /api/messages/unread-count
+PUT  /api/conversations/{id}/read
 POST /api/devices
 
 GET  /api/admin/statistics/dashboard

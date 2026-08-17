@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/api_paths.dart';
@@ -45,8 +47,13 @@ class ConversationRepository {
   }
 
   Future<ConversationModel> markRead(int id) async {
-    final response = await _api.post('${ApiPaths.conversations}/$id/read');
+    final response = await _api.put('${ApiPaths.conversations}/$id/read');
     return ConversationModel.fromJson(asJson(response));
+  }
+
+  Future<int> unreadCount() async {
+    final response = await _api.get('${ApiPaths.messages}/unread-count');
+    return (asJson(response)['unreadCount'] as num?)?.toInt() ?? 0;
   }
 }
 
@@ -59,7 +66,10 @@ final conversationsProvider = FutureProvider<List<ConversationModel>>((
 ) async {
   final auth = ref.watch(authControllerProvider);
   if (auth.isInitializing || !auth.isAuthenticated) return const [];
-  return ref.watch(conversationRepositoryProvider).list();
+  final items = await ref.watch(conversationRepositoryProvider).list();
+  final timer = Timer(const Duration(seconds: 12), ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
+  return items;
 });
 
 final conversationProvider = FutureProvider.family<ConversationModel, int>(
@@ -70,3 +80,12 @@ final conversationMessagesProvider =
     FutureProvider.family<List<ChatMessageModel>, int>(
       (ref, id) => ref.watch(conversationRepositoryProvider).messages(id),
     );
+
+final unreadMessageCountProvider = FutureProvider<int>((ref) async {
+  final auth = ref.watch(authControllerProvider);
+  if (auth.isInitializing || !auth.isAuthenticated) return 0;
+  final count = await ref.watch(conversationRepositoryProvider).unreadCount();
+  final timer = Timer(const Duration(seconds: 12), ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
+  return count;
+});
