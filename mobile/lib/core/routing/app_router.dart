@@ -8,6 +8,7 @@ import '../../features/auth/presentation/register_page.dart';
 import '../../features/blood_requests/presentation/blood_request_detail_page.dart';
 import '../../features/blood_requests/presentation/blood_requests_page.dart';
 import '../../features/blood_requests/presentation/create_blood_request_page.dart';
+import '../../features/blood_requests/presentation/my_requests_page.dart';
 import '../../features/donation_centers/presentation/donation_centers_page.dart';
 import '../../features/donations/presentation/donate_page.dart';
 import '../../features/donations/presentation/donation_history_page.dart';
@@ -52,6 +53,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/donaciones',
         builder: (context, state) => const DonationHistoryPage(),
+      ),
+      GoRoute(
+        path: '/mis-solicitudes',
+        builder: (context, state) => const MyRequestsPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

@@ -185,6 +185,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           const SizedBox(height: 12),
           ListTile(
+            leading: const Icon(Icons.bloodtype_outlined),
+            title: const Text('Mis solicitudes'),
+            subtitle: const Text('Consulta el progreso de unidades recibidas'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/mis-solicitudes'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.volunteer_activism_outlined),
+            title: const Text('Mis donaciones'),
+            subtitle: const Text('Reportes y estado de confirmación'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/donaciones'),
+          ),
+          ListTile(
             leading: const Icon(Icons.notifications_outlined),
             title: const Text('Notificaciones'),
             trailing: const Icon(Icons.chevron_right),

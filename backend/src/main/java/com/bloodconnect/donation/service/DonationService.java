@@ -139,6 +139,17 @@ public class DonationService {
         if (units <= 0) {
             throw new BadRequestException("Las unidades donadas deben ser mayores que cero");
         }
+        long remaining = bloodRequest.getUnitsRequired()
+                - donationRepository.sumConfirmedUnitsByRequest(bloodRequest.getId());
+        if (remaining <= 0) {
+            throw new BadRequestException("Esta solicitud ya no necesita más unidades");
+        }
+        if (units > remaining) {
+            throw new BadRequestException(
+                    "Solo puede reportar hasta " + remaining
+                            + (remaining == 1 ? " unidad pendiente" : " unidades pendientes")
+            );
+        }
         LocalDate date = donationDate == null ? LocalDate.now() : donationDate;
         if (date.isAfter(LocalDate.now())) {
             throw new BadRequestException("La fecha de donación no puede estar en el futuro");
@@ -163,8 +174,6 @@ public class DonationService {
                 .status(DonationStatus.REPORTED)
                 .build());
 
-        donor.setLastDonationDate(date);
-        donorRepository.save(donor);
         completeActiveResponses(bloodRequest, donor);
 
         if (bloodRequest.getStatus() == RequestStatus.OPEN) {
@@ -226,6 +235,7 @@ public class DonationService {
         donation.setConfirmedUnits(confirmedUnits);
         donation.setStatus(resolveConfirmationStatus(donation.getUnits(), confirmedUnits));
         donationRepository.save(donation);
+        updateLastDonationDate(donation);
 
         DonationProgress progress = applyRequestProgress(bloodRequest);
         notifyConfirmation(donation, bloodRequest, progress);
@@ -274,6 +284,18 @@ public class DonationService {
                     "BLOOD_REQUEST",
                     bloodRequest.getId()
             );
+        }
+    }
+
+    private void updateLastDonationDate(Donation donation) {
+        if (donation.getConfirmedUnits() <= 0) {
+            return;
+        }
+        Donor donor = donation.getDonor();
+        LocalDate current = donor.getLastDonationDate();
+        if (current == null || donation.getDonationDate().isAfter(current)) {
+            donor.setLastDonationDate(donation.getDonationDate());
+            donorRepository.save(donor);
         }
     }
 
@@ -334,13 +356,21 @@ public class DonationService {
     }
 
     private DonationDto toDto(Donation donation) {
+        var request = donation.getBloodRequest();
         return new DonationDto(
                 donation.getId(),
                 donation.getDonor().getId(),
                 donation.getDonor().getUser().getId(),
                 donation.getDonor().getUser().getFirstName() + " "
                         + donation.getDonor().getUser().getLastName(),
-                donation.getBloodRequest() == null ? null : donation.getBloodRequest().getId(),
+                request == null ? null : request.getId(),
+                request == null ? null : request.getPatientName(),
+                request == null
+                        ? (donation.getDonationCenter() == null ? null : donation.getDonationCenter().getName())
+                        : request.getHospital(),
+                request == null
+                        ? null
+                        : request.getCreatedBy().getFirstName() + " " + request.getCreatedBy().getLastName(),
                 donation.getDonationCenter() == null ? null : donation.getDonationCenter().getId(),
                 donation.getDonationCenter() == null ? null : donation.getDonationCenter().getName(),
                 donation.getDonationDate(),

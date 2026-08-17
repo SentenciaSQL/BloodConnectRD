@@ -473,7 +473,15 @@ export class ProfilePage implements OnInit {
               <div>
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="text-lg font-black text-brand-700">{{ request.bloodType }}</span>
-                  <app-badge [tone]="request.status === 'OPEN' ? 'green' : 'neutral'">
+                  <app-badge
+                    [tone]="
+                      request.status === 'FULFILLED' || request.status === 'OPEN'
+                        ? 'green'
+                        : request.status === 'IN_PROGRESS'
+                          ? 'amber'
+                          : 'neutral'
+                    "
+                  >
                     {{ statusLabels[request.status] }}
                   </app-badge>
                 </div>
@@ -491,16 +499,16 @@ export class ProfilePage implements OnInit {
                 }
               </div>
             </div>
-            <div class="mt-4 h-2 overflow-hidden rounded-full bg-ink-100">
+            <div class="mt-4 h-3 overflow-hidden rounded-full bg-ink-100">
               <div
                 class="h-full rounded-full bg-brand-600"
                 [style.width.%]="progressPercent(request)"
               ></div>
             </div>
-            <p class="mt-2 text-xs font-medium text-ink-600">
-              {{ request.completedUnits }} de {{ request.unitsRequired }} unidades
-              ({{ progressPercent(request) }}%)
-            </p>
+            <div class="mt-2 flex items-center justify-between gap-3 text-sm font-semibold text-ink-700">
+              <span>{{ request.completedUnits }} de {{ request.unitsRequired }} unidades recibidas</span>
+              <span class="text-brand-700">{{ progressPercent(request) }}%</span>
+            </div>
           </article>
         }
       </div>
@@ -750,7 +758,7 @@ export class MyRequestsPage implements OnInit {
     <header>
       <p class="eyebrow">Historial</p>
       <h1 class="font-display text-4xl font-semibold text-ink-950">Mis donaciones</h1>
-      <p class="mt-2 text-ink-600">Consulta las donaciones registradas por los centros.</p>
+        <p class="mt-2 text-ink-600">Consulta las donaciones que has reportado y su estado de confirmación.</p>
     </header>
 
     @if (loading()) {
@@ -785,7 +793,7 @@ export class MyRequestsPage implements OnInit {
         <div class="mt-8">
           <app-empty-state
             title="No hay donaciones registradas"
-            message="Tu historial aparecerá cuando un centro confirme una donación."
+            message="Cuando pulses “Ya doné” en una solicitud, tu reporte aparecerá aquí."
           >
             <a routerLink="/centros" class="btn-primary">Buscar un centro</a>
           </app-empty-state>
