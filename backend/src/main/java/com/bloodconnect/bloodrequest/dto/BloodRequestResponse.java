@@ -15,6 +15,8 @@ public record BloodRequestResponse(
         BloodType bloodType,
         int unitsRequired,
         long completedUnits,
+        long pendingUnits,
+        int progressPercent,
         String hospital,
         Long provinceId,
         String provinceName,

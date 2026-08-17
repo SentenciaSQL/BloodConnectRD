@@ -159,6 +159,9 @@ GET  /api/blood-requests
 GET  /api/blood-requests/urgent
 GET  /api/blood-requests/nearby
 POST /api/blood-requests/{id}/responses
+GET  /api/blood-requests/{id}/donations
+POST /api/blood-requests/{id}/donations
+PATCH /api/donations/{id}/confirm
 
 GET  /api/donation-centers
 GET  /api/donation-centers/nearby

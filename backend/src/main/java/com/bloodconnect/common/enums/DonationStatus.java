@@ -1,6 +1,8 @@
 package com.bloodconnect.common.enums;
 
 public enum DonationStatus {
-    COMPLETED,
+    REPORTED,
+    PARTIALLY_CONFIRMED,
+    CONFIRMED,
     CANCELLED
 }

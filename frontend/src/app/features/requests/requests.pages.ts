@@ -6,19 +6,25 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   BLOOD_TYPES,
   BloodRequest,
+  Donation,
   Municipality,
   PageResponse,
   Province,
+  donationStatusLabel,
+  donationStatusTone,
+  requestPendingUnits,
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage, AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
+  BadgeComponent,
   BloodTypeBadgeComponent,
   EmptyStateComponent,
   LoadingSpinnerComponent,
   PaginationComponent,
   RequestCardComponent,
+  RequestProgressComponent,
   UrgencyBadgeComponent,
 } from '../../shared/components/ui-components';
 
@@ -304,8 +310,10 @@ export class RequestsPage implements OnInit {
     DatePipe,
     ReactiveFormsModule,
     RouterLink,
+    BadgeComponent,
     BloodTypeBadgeComponent,
     LoadingSpinnerComponent,
+    RequestProgressComponent,
     UrgencyBadgeComponent,
   ],
   template: `
@@ -329,20 +337,12 @@ export class RequestsPage implements OnInit {
               {{ request()!.municipalityName }}, {{ request()!.provinceName }}
             </p>
 
-            <dl class="mt-8 grid gap-5 border-y border-ink-100 py-7 sm:grid-cols-3">
-              <div>
-                <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades requeridas</dt>
-                <dd class="mt-1 text-xl font-bold">{{ request()!.unitsRequired }}</dd>
-              </div>
-              <div>
-                <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades completadas</dt>
-                <dd class="mt-1 text-xl font-bold">{{ request()!.completedUnits }}</dd>
-              </div>
-              <div>
-                <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Fecha límite</dt>
-                <dd class="mt-1 text-lg font-bold">{{ request()!.deadline | date: 'mediumDate' }}</dd>
-              </div>
-            </dl>
+            <div class="mt-8">
+              <app-request-progress [request]="request()!" />
+            </div>
+            <p class="mt-4 text-sm text-ink-500">
+              Fecha límite: <strong class="text-ink-800">{{ request()!.deadline | date: 'mediumDate' }}</strong>
+            </p>
 
             <div class="mt-8 grid gap-7 sm:grid-cols-2">
               <div>
@@ -371,62 +371,153 @@ export class RequestsPage implements OnInit {
                 </p>
               </div>
             }
+
+            @if (isOwner() && donations().length) {
+              <section class="mt-10 border-t border-ink-100 pt-8">
+                <h2 class="font-display text-2xl font-semibold text-ink-950">Donaciones reportadas</h2>
+                <p class="mt-1 text-sm text-ink-600">
+                  Confirma cuántas unidades recibiste realmente de cada donante. El progreso solo
+                  se actualiza con unidades confirmadas.
+                </p>
+                <div class="mt-5 grid gap-4">
+                  @for (donation of donations(); track donation.id) {
+                    <article class="rounded-2xl border border-ink-100 p-5">
+                      <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 class="font-bold text-ink-950">{{ donation.donorName }}</h3>
+                          <p class="mt-1 text-sm text-ink-500">
+                            Reportada el {{ donation.donationDate | date: 'mediumDate' }}
+                          </p>
+                        </div>
+                        <app-badge [tone]="statusTone(donation.status)">
+                          {{ statusLabel(donation.status) }}
+                        </app-badge>
+                      </div>
+                      <p class="mt-3 text-sm text-ink-600">
+                        Reportadas: {{ donation.units }} · Confirmadas: {{ donation.confirmedUnits }}
+                      </p>
+                      @if (canConfirm(donation)) {
+                        <form class="mt-4 flex flex-wrap items-end gap-3" (ngSubmit)="confirm(donation)">
+                          <label class="min-w-[10rem] flex-1">
+                            <span class="form-label">Unidades recibidas</span>
+                            <input
+                              type="number"
+                              min="1"
+                              class="form-control"
+                              [max]="maxConfirmable(donation)"
+                              [value]="confirmValue(donation)"
+                              (input)="setConfirmUnits(donation.id, $any($event.target).value)"
+                            />
+                          </label>
+                          <button type="submit" class="btn-primary" [disabled]="confirmingId() === donation.id">
+                            {{ confirmingId() === donation.id ? 'Confirmando…' : 'Confirmar unidades recibidas' }}
+                          </button>
+                        </form>
+                      }
+                    </article>
+                  }
+                </div>
+              </section>
+            }
           </article>
 
-          <aside class="h-fit rounded-2xl bg-ink-950 p-6 text-white">
-            <h2 class="font-display text-2xl font-semibold">¿Puedes donar?</h2>
-            <p class="mt-3 text-sm leading-relaxed text-ink-300">
-              Envía tu intención de ayudar. La persona solicitante podrá coordinar contigo de forma
-              segura.
-            </p>
-            @if (auth.isDonor()) {
-              <form class="mt-6" [formGroup]="responseForm" (ngSubmit)="respond()">
-                <label>
-                  <span class="mb-1.5 block text-sm font-semibold">Mensaje opcional</span>
-                  <textarea
-                    formControlName="message"
-                    rows="3"
-                    maxlength="500"
-                    class="form-control !border-ink-700 !bg-ink-900 !text-white"
-                    placeholder="Indica cuándo podrías acudir"
-                  ></textarea>
-                </label>
-                <button type="submit" class="btn-primary mt-4 w-full" [disabled]="sending()">
-                  {{ sending() ? 'Enviando…' : 'Quiero ayudar' }}
-                </button>
-              </form>
-            } @else if (auth.isAuthenticated()) {
-              <p class="mt-5 text-sm leading-relaxed text-ink-300">
-                Ya tienes una cuenta. Completa tu perfil de donante para poder responder a esta
-                solicitud.
+          <aside class="h-fit space-y-4">
+            <div class="rounded-2xl bg-ink-950 p-6 text-white">
+              <h2 class="font-display text-2xl font-semibold">¿Puedes donar?</h2>
+              <p class="mt-3 text-sm leading-relaxed text-ink-300">
+                Envía tu intención de ayudar. La persona solicitante podrá coordinar contigo de forma
+                segura.
               </p>
-              <a
-                routerLink="/dashboard/perfil"
-                [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
-                class="btn-primary mt-4 w-full"
-              >
-                Completar perfil de donante
-              </a>
-            } @else {
-              <a
-                routerLink="/login"
-                [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
-                class="btn-primary mt-6 w-full"
-              >
-                Iniciar sesión para ayudar
-              </a>
-              <a
-                routerLink="/registro"
-                [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
-                class="mt-3 block text-center text-sm font-semibold text-brand-200 hover:text-white"
-              >
-                Crear cuenta
-              </a>
+              @if (auth.isDonor() && !isOwner()) {
+                <form class="mt-6" [formGroup]="responseForm" (ngSubmit)="respond()">
+                  <label>
+                    <span class="mb-1.5 block text-sm font-semibold">Mensaje opcional</span>
+                    <textarea
+                      formControlName="message"
+                      rows="3"
+                      maxlength="500"
+                      class="form-control !border-ink-700 !bg-ink-900 !text-white"
+                      placeholder="Indica cuándo podrías acudir"
+                    ></textarea>
+                  </label>
+                  <button type="submit" class="btn-primary mt-4 w-full" [disabled]="sending()">
+                    {{ sending() ? 'Enviando…' : 'Quiero ayudar' }}
+                  </button>
+                </form>
+              } @else if (auth.isAuthenticated() && !auth.isDonor()) {
+                <p class="mt-5 text-sm leading-relaxed text-ink-300">
+                  Ya tienes una cuenta. Completa tu perfil de donante para poder responder a esta
+                  solicitud.
+                </p>
+                <a
+                  routerLink="/dashboard/perfil"
+                  [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
+                  class="btn-primary mt-4 w-full"
+                >
+                  Completar perfil de donante
+                </a>
+              } @else if (!auth.isAuthenticated()) {
+                <a
+                  routerLink="/login"
+                  [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
+                  class="btn-primary mt-6 w-full"
+                >
+                  Iniciar sesión para ayudar
+                </a>
+                <a
+                  routerLink="/registro"
+                  [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
+                  class="mt-3 block text-center text-sm font-semibold text-brand-200 hover:text-white"
+                >
+                  Crear cuenta
+                </a>
+              } @else {
+                <p class="mt-5 text-sm leading-relaxed text-ink-300">
+                  Esta es tu solicitud. Confirma las unidades cuando las recibas.
+                </p>
+              }
+              <p class="mt-5 border-t border-ink-800 pt-5 text-xs leading-relaxed text-ink-400">
+                Tu compatibilidad y elegibilidad deben ser confirmadas por profesionales de salud.
+                Nunca dones fuera de un centro autorizado.
+              </p>
+            </div>
+
+            @if (canReportDonation()) {
+              <div class="rounded-2xl border border-brand-200 bg-white p-6">
+                <h2 class="font-display text-xl font-semibold text-ink-950">Marcar como donación realizada</h2>
+                <p class="mt-2 text-sm text-ink-600">
+                  Indica cuántas unidades donaste. El progreso de la solicitud no cambia hasta que
+                  el receptor confirme la recepción.
+                </p>
+                <form class="mt-5 grid gap-4" [formGroup]="reportForm" (ngSubmit)="reportDonation()">
+                  <label>
+                    <span class="form-label">Unidades donadas</span>
+                    <input type="number" min="1" formControlName="units" class="form-control" />
+                  </label>
+                  <label>
+                    <span class="form-label">Notas opcionales</span>
+                    <textarea formControlName="notes" rows="2" maxlength="500" class="form-control"></textarea>
+                  </label>
+                  <button type="submit" class="btn-primary w-full" [disabled]="reporting()">
+                    {{ reporting() ? 'Registrando…' : 'Marcar como donación realizada' }}
+                  </button>
+                </form>
+              </div>
+            } @else if (myDonation()) {
+              <div class="rounded-2xl border border-ink-100 bg-white p-6">
+                <h2 class="font-display text-xl font-semibold text-ink-950">Tu reporte</h2>
+                <p class="mt-2 text-sm text-ink-600">
+                  Reportaste {{ myDonation()!.units }}
+                  {{ myDonation()!.units === 1 ? 'unidad' : 'unidades' }}.
+                  Confirmadas: {{ myDonation()!.confirmedUnits }}.
+                </p>
+                <p class="mt-3">
+                  <app-badge [tone]="statusTone(myDonation()!.status)">
+                    {{ statusLabel(myDonation()!.status) }}
+                  </app-badge>
+                </p>
+              </div>
             }
-            <p class="mt-5 border-t border-ink-800 pt-5 text-xs leading-relaxed text-ink-400">
-              Tu compatibilidad y elegibilidad deben ser confirmadas por profesionales de salud.
-              Nunca dones fuera de un centro autorizado.
-            </p>
           </aside>
         </div>
       } @else {
@@ -445,19 +536,86 @@ export class RequestDetailPage implements OnInit {
   private readonly toast = inject(ToastService);
   readonly auth = inject(AuthService);
   readonly request = signal<BloodRequest | null>(null);
+  readonly donations = signal<Donation[]>([]);
+  readonly confirmUnits = signal<Record<number, number>>({});
   readonly loading = signal(true);
   readonly sending = signal(false);
+  readonly reporting = signal(false);
+  readonly confirmingId = signal<number | null>(null);
   readonly responseForm = this.fb.nonNullable.group({
     message: ['', Validators.maxLength(500)],
+  });
+  readonly reportForm = this.fb.nonNullable.group({
+    units: [1, [Validators.required, Validators.min(1)]],
+    notes: ['', Validators.maxLength(500)],
   });
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.api.request(id).subscribe({
-      next: (request) => this.request.set(request),
+      next: (request) => {
+        this.request.set(request);
+        this.loadDonations(request.id);
+      },
       error: () => this.loading.set(false),
       complete: () => this.loading.set(false),
     });
+  }
+
+  isOwner(): boolean {
+    const userId = this.auth.user()?.id;
+    return Boolean(userId && userId === this.request()?.createdById);
+  }
+
+  canReportDonation(): boolean {
+    const request = this.request();
+    if (!request || !this.auth.isDonor() || this.isOwner()) return false;
+    if (request.status !== 'OPEN' && request.status !== 'IN_PROGRESS') return false;
+    return !this.donations().some(
+      (donation) =>
+        donation.donorUserId === this.auth.user()?.id &&
+        (donation.status === 'REPORTED' || donation.status === 'PARTIALLY_CONFIRMED'),
+    );
+  }
+
+  myDonation(): Donation | undefined {
+    const userId = this.auth.user()?.id;
+    return this.donations().find((donation) => donation.donorUserId === userId);
+  }
+
+  canConfirm(donation: Donation): boolean {
+    return (
+      this.isOwner() &&
+      (donation.status === 'REPORTED' || donation.status === 'PARTIALLY_CONFIRMED') &&
+      this.maxConfirmable(donation) > donation.confirmedUnits
+    );
+  }
+
+  maxConfirmable(donation: Donation): number {
+    const pending = requestPendingUnits(this.request()!);
+    return Math.min(donation.units, donation.confirmedUnits + pending);
+  }
+
+  defaultConfirmUnits(donation: Donation): number {
+    return Math.max(donation.confirmedUnits || 1, Math.min(donation.units, this.maxConfirmable(donation)));
+  }
+
+  confirmValue(donation: Donation): number {
+    const selected = this.confirmUnits()[donation.id];
+    return selected === undefined ? this.defaultConfirmUnits(donation) : selected;
+  }
+
+  setConfirmUnits(id: number, value: string): void {
+    const units = Number(value);
+    this.confirmUnits.update((current) => ({ ...current, [id]: units }));
+  }
+
+  statusLabel(status: string): string {
+    return donationStatusLabel(status);
+  }
+
+  statusTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
+    return donationStatusTone(status);
   }
 
   respond(): void {
@@ -473,6 +631,62 @@ export class RequestDetailPage implements OnInit {
         this.toast.error(apiErrorMessage(error));
       },
       complete: () => this.sending.set(false),
+    });
+  }
+
+  reportDonation(): void {
+    if (!this.request() || this.reportForm.invalid) {
+      this.reportForm.markAllAsTouched();
+      return;
+    }
+    this.reporting.set(true);
+    const value = this.reportForm.getRawValue();
+    this.api.reportDonation(this.request()!.id, { units: value.units, notes: value.notes || undefined }).subscribe({
+      next: () => {
+        this.toast.success('Tu donación fue reportada. El receptor confirmará las unidades recibidas.');
+        this.refresh();
+      },
+      error: (error) => {
+        this.reporting.set(false);
+        this.toast.error(apiErrorMessage(error));
+      },
+      complete: () => this.reporting.set(false),
+    });
+  }
+
+  confirm(donation: Donation): void {
+    const units = this.confirmValue(donation);
+    this.confirmingId.set(donation.id);
+    this.api.confirmDonation(donation.id, units).subscribe({
+      next: () => {
+        this.toast.success('Las unidades recibidas fueron confirmadas.');
+        this.refresh();
+      },
+      error: (error) => {
+        this.confirmingId.set(null);
+        this.toast.error(apiErrorMessage(error));
+      },
+      complete: () => this.confirmingId.set(null),
+    });
+  }
+
+  private refresh(): void {
+    const id = this.request()?.id;
+    if (!id) return;
+    this.api.request(id).subscribe({
+      next: (request) => this.request.set(request),
+    });
+    this.loadDonations(id);
+  }
+
+  private loadDonations(id: number): void {
+    if (!this.auth.isAuthenticated()) {
+      this.donations.set([]);
+      return;
+    }
+    this.api.requestDonations(id).subscribe({
+      next: (donations) => this.donations.set(donations),
+      error: () => this.donations.set([]),
     });
   }
 }

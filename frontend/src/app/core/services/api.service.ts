@@ -101,6 +101,18 @@ export class ApiService {
     return this.http.get<BloodRequest>(`${this.base}/blood-requests/${id}`);
   }
 
+  requestDonations(id: number) {
+    return this.http.get<Donation[]>(`${this.base}/blood-requests/${id}/donations`);
+  }
+
+  reportDonation(requestId: number, payload: { units: number; donationDate?: string; notes?: string }) {
+    return this.http.post<Donation>(`${this.base}/blood-requests/${requestId}/donations`, payload);
+  }
+
+  confirmDonation(donationId: number, confirmedUnits: number) {
+    return this.http.patch<Donation>(`${this.base}/donations/${donationId}/confirm`, { confirmedUnits });
+  }
+
   createRequest(payload: BloodRequestPayload) {
     return this.http.post<BloodRequest>(`${this.base}/blood-requests`, payload);
   }

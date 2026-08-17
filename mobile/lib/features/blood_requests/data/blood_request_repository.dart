@@ -131,6 +131,34 @@ class BloodRequestRepository {
       data: {'message': message},
     );
   }
+
+  Future<List<DonationModel>> donations(int requestId) async {
+    final response = await _api.get('${ApiPaths.bloodRequests}/$requestId/donations');
+    return asJsonList(response).map(DonationModel.fromJson).toList();
+  }
+
+  Future<DonationModel> reportDonation(
+    int requestId, {
+    required int units,
+    String? notes,
+  }) async {
+    final response = await _api.post(
+      '${ApiPaths.bloodRequests}/$requestId/donations',
+      data: {'units': units, if (notes != null && notes.isNotEmpty) 'notes': notes},
+    );
+    return DonationModel.fromJson(asJson(response));
+  }
+
+  Future<DonationModel> confirmDonation(
+    int donationId, {
+    required int confirmedUnits,
+  }) async {
+    final response = await _api.patch(
+      '${ApiPaths.donations}/$donationId/confirm',
+      data: {'confirmedUnits': confirmedUnits},
+    );
+    return DonationModel.fromJson(asJson(response));
+  }
 }
 
 final bloodRequestRepositoryProvider = Provider<BloodRequestRepository>(
@@ -167,3 +195,17 @@ final bloodRequestDetailProvider =
     FutureProvider.family<BloodRequestModel, int>(
       (ref, id) => ref.watch(bloodRequestRepositoryProvider).get(id),
     );
+
+final requestDonationsProvider = FutureProvider.family<List<DonationModel>, int>(
+  (ref, id) async {
+    final auth = ref.watch(authControllerProvider);
+    if (!auth.isAuthenticated) return const [];
+    try {
+      return await ref.watch(bloodRequestRepositoryProvider).donations(id);
+    } on ForbiddenException {
+      return const [];
+    } on NotFoundException {
+      return const [];
+    }
+  },
+);

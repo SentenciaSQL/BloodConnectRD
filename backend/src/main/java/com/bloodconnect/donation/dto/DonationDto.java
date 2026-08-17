@@ -8,14 +8,17 @@ import java.time.LocalDate;
 public record DonationDto(
         Long id,
         Long donorId,
+        Long donorUserId,
         String donorName,
         Long bloodRequestId,
         Long donationCenterId,
         String donationCenterName,
         LocalDate donationDate,
         int units,
+        int confirmedUnits,
         String notes,
         DonationStatus status,
-        Instant createdAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }
