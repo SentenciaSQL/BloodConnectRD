@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 
+import { SeoService } from './core/seo/seo.service';
 import { ToastComponent } from './shared/components/ui-components';
 
 @Component({
@@ -10,5 +12,12 @@ import { ToastComponent } from './shared/components/ui-components';
   styleUrl: './app.css'
 })
 export class App {
-  readonly title = 'BloodConnect RD';
+  private readonly router = inject(Router);
+  private readonly seo = inject(SeoService);
+
+  constructor() {
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event) => this.seo.applyForUrl(event.urlAfterRedirects));
+  }
 }

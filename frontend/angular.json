@@ -46,6 +46,16 @@
               "zone.js"
             ],
             "tsConfig": "tsconfig.app.json",
+            "outputMode": "server",
+            "server": "src/main.server.ts",
+            "ssr": {
+              "entry": "src/server.ts"
+            },
+            "security": {
+              "allowedHosts": [
+                "localhost"
+              ]
+            },
             "assets": [
               {
                 "glob": "**/*",
