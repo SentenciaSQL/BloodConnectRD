@@ -125,11 +125,17 @@ class BloodRequestRepository {
     return BloodRequestModel.fromJson(asJson(response));
   }
 
-  Future<void> offerHelp(int requestId, {String? message}) async {
-    await _api.post(
+  Future<DonationResponseModel> offerHelp(int requestId, {String? message}) async {
+    final response = await _api.post(
       '${ApiPaths.bloodRequests}/$requestId/responses',
       data: {'message': message},
     );
+    return DonationResponseModel.fromJson(asJson(response));
+  }
+
+  Future<List<DonationResponseModel>> responses(int requestId) async {
+    final response = await _api.get('${ApiPaths.bloodRequests}/$requestId/responses');
+    return asJsonList(response).map(DonationResponseModel.fromJson).toList();
   }
 
   Future<List<DonationModel>> donations(int requestId) async {
@@ -232,6 +238,20 @@ final requestDonationsProvider = FutureProvider.family<List<DonationModel>, int>
   },
 );
 
+final requestResponsesProvider = FutureProvider.family<List<DonationResponseModel>, int>(
+  (ref, id) async {
+    final auth = ref.watch(authControllerProvider);
+    if (!auth.isAuthenticated) return const [];
+    try {
+      return await ref.watch(bloodRequestRepositoryProvider).responses(id);
+    } on ForbiddenException {
+      return const [];
+    } on NotFoundException {
+      return const [];
+    }
+  },
+);
+
 void invalidateBloodRequestCaches(WidgetRef ref, {int? requestId}) {
   ref.invalidate(bloodRequestsProvider);
   ref.invalidate(urgentRequestsProvider);
@@ -240,5 +260,6 @@ void invalidateBloodRequestCaches(WidgetRef ref, {int? requestId}) {
   if (requestId != null) {
     ref.invalidate(bloodRequestDetailProvider(requestId));
     ref.invalidate(requestDonationsProvider(requestId));
+    ref.invalidate(requestResponsesProvider(requestId));
   }
 }

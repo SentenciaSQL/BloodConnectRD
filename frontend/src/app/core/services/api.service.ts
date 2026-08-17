@@ -13,6 +13,7 @@ import {
   Donation,
   DonationCenter,
   DonationHistory,
+  DonationResponse,
   Donor,
   DonorPayload,
   Municipality,
@@ -126,7 +127,11 @@ export class ApiService {
   }
 
   respondToRequest(id: number, message?: string) {
-    return this.http.post(`${this.base}/blood-requests/${id}/responses`, { message });
+    return this.http.post<DonationResponse>(`${this.base}/blood-requests/${id}/responses`, { message });
+  }
+
+  requestResponses(id: number) {
+    return this.http.get<DonationResponse[]>(`${this.base}/blood-requests/${id}/responses`);
   }
 
   centers(filters: Record<string, string | number | boolean | null | undefined> = {}) {

@@ -365,6 +365,46 @@ class DonationModel {
           : (centerName.isEmpty ? 'Donación registrada' : centerName);
 }
 
+class DonationResponseModel {
+  const DonationResponseModel({
+    required this.id,
+    required this.donorUserId,
+    required this.donorName,
+    required this.status,
+    this.donorBloodType,
+    this.message,
+    this.createdAt,
+  });
+
+  factory DonationResponseModel.fromJson(JsonMap json) => DonationResponseModel(
+    id: (json['id'] as num).toInt(),
+    donorUserId: (json['donorUserId'] as num?)?.toInt() ?? 0,
+    donorName: json['donorName']?.toString() ?? '',
+    donorBloodType: json['donorBloodType']?.toString(),
+    status: json['status']?.toString() ?? '',
+    message: json['message']?.toString(),
+    createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+  );
+
+  final int id;
+  final int donorUserId;
+  final String donorName;
+  final String? donorBloodType;
+  final String status;
+  final String? message;
+  final DateTime? createdAt;
+
+  bool get isActiveOffer => status == 'PENDING' || status == 'ACCEPTED';
+
+  String get statusLabel => switch (status) {
+    'PENDING' || 'ACCEPTED' => 'Interesado en ayudar',
+    'REJECTED' => 'No seleccionado',
+    'COMPLETED' => 'Donación reportada',
+    'CANCELLED' => 'Cancelado',
+    _ => status,
+  };
+}
+
 class DonationHistory {
   const DonationHistory({
     required this.totalDonations,

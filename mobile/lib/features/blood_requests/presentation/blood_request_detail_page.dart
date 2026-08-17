@@ -34,13 +34,10 @@ class _BloodRequestDetailPageState
       await ref
           .read(bloodRequestRepositoryProvider)
           .offerHelp(widget.requestId, message: message);
+      ref.invalidate(requestResponsesProvider(widget.requestId));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Tu ofrecimiento fue enviado. Te contactarán para coordinar.',
-          ),
-        ),
+        const SnackBar(content: Text('Tu ofrecimiento de ayuda fue enviado')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -130,6 +127,7 @@ class _BloodRequestDetailPageState
   Widget build(BuildContext context) {
     final request = ref.watch(bloodRequestDetailProvider(widget.requestId));
     final donations = ref.watch(requestDonationsProvider(widget.requestId));
+    final offers = ref.watch(requestResponsesProvider(widget.requestId));
     final user = ref.watch(authControllerProvider).user;
     return request.when(
       loading: () => Scaffold(
@@ -149,11 +147,22 @@ class _BloodRequestDetailPageState
         final isDonor = user?.isDonor == true;
         final reportedDonations =
             donations.valueOrNull ?? const <DonationModel>[];
+        final helpOffers =
+            offers.valueOrNull ?? const <DonationResponseModel>[];
         final mine = reportedDonations.where(
           (donation) => donation.donorUserId == user?.id,
         );
         final myDonation = mine.isEmpty ? null : mine.first;
         final pendingMine = myDonation != null && myDonation.isPendingConfirmation;
+        final myOffer = helpOffers.where(
+          (offer) => offer.donorUserId == user?.id && offer.isActiveOffer,
+        );
+        final alreadyOffered = myOffer.isNotEmpty;
+        final canOffer =
+            isDonor &&
+            !isOwner &&
+            !alreadyOffered &&
+            (item.status == 'OPEN' || item.status == 'IN_PROGRESS');
         final canReport =
             isDonor &&
             !isOwner &&
@@ -224,6 +233,20 @@ class _BloodRequestDetailPageState
               ],
               if (isOwner) ...[
                 const SizedBox(height: 24),
+                const SectionHeader(title: 'Personas interesadas en ayudar'),
+                const SizedBox(height: 8),
+                Text(
+                  'Estos mensajes no cambian el progreso. Las unidades se suman cuando confirmas “Ya doné”.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                if (helpOffers.isEmpty)
+                  const Text(
+                    'Cuando un donante pulse “Quiero ayudar”, su mensaje aparecerá aquí.',
+                  )
+                else
+                  for (final offer in helpOffers) _HelpOfferTile(offer: offer),
+                const SizedBox(height: 24),
                 const SectionHeader(title: 'Donaciones reportadas'),
                 const SizedBox(height: 8),
                 if (reportedDonations.isEmpty)
@@ -247,16 +270,31 @@ class _BloodRequestDetailPageState
                           : null,
                     ),
               ],
-              if (!isOwner) ...[
+              if (!isOwner && isDonor) ...[
                 const SizedBox(height: 24),
-                PrimaryButton(
-                  label: 'Quiero ayudar',
-                  icon: Icons.volunteer_activism,
-                  isLoading: _submitting,
-                  onPressed:
-                      item.status == 'OPEN' || item.status == 'IN_PROGRESS'
-                      ? _offerHelp
-                      : null,
+                if (alreadyOffered)
+                  Card(
+                    color: Theme.of(context).colorScheme.secondaryContainer,
+                    child: const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'Ya ofreciste ayudar. El creador de la solicitud recibió tu mensaje.',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  )
+                else
+                  PrimaryButton(
+                    label: 'Quiero ayudar',
+                    icon: Icons.volunteer_activism,
+                    isLoading: _submitting,
+                    onPressed: canOffer ? _offerHelp : null,
+                  ),
+              ],
+              if (!isOwner && user != null && !isDonor) ...[
+                const SizedBox(height: 24),
+                const Text(
+                  'Completa tu perfil de donante para ofrecer ayuda en esta solicitud.',
                 ),
               ],
               if (pendingMine && !isOwner) ...[
@@ -297,6 +335,44 @@ class _BloodRequestDetailPageState
               : null,
         );
       },
+    );
+  }
+}
+
+class _HelpOfferTile extends StatelessWidget {
+  const _HelpOfferTile({required this.offer});
+
+  final DonationResponseModel offer;
+
+  @override
+  Widget build(BuildContext context) {
+    final bloodType = offer.donorBloodType;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              bloodType == null || bloodType.isEmpty
+                  ? offer.donorName
+                  : '${offer.donorName} — $bloodType',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text('Fecha: ${formatDate(offer.createdAt, short: true)}'),
+            Text('Estado: ${offer.statusLabel}'),
+            const SizedBox(height: 8),
+            Text(
+              (offer.message == null || offer.message!.isEmpty)
+                  ? 'Sin mensaje adicional.'
+                  : '“${offer.message}”',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -394,7 +470,7 @@ class _HelpDialogState extends State<_HelpDialog> {
         maxLines: 3,
         decoration: const InputDecoration(
           labelText: 'Mensaje opcional',
-          hintText: 'Indica cuándo podrían contactarte',
+          hintText: 'Hola, soy O+ y puedo donar mañana en la mañana.',
           border: OutlineInputBorder(),
         ),
       ),

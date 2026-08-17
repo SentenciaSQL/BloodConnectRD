@@ -843,7 +843,7 @@ export class MyDonationsPage implements OnInit {
             type="button"
             class="flex w-full items-start gap-4 border-b border-ink-100 p-5 text-left last:border-0 hover:bg-ink-50"
             [class.bg-brand-50]="!notification.read"
-            (click)="markRead(notification)"
+            (click)="open(notification)"
           >
             <span
               class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
@@ -875,6 +875,7 @@ export class MyDonationsPage implements OnInit {
 export class NotificationsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
   readonly page = signal<PageResponse<Notification> | null>(null);
   readonly loading = signal(true);
 
@@ -892,6 +893,13 @@ export class NotificationsPage implements OnInit {
       },
       complete: () => this.loading.set(false),
     });
+  }
+
+  open(notification: Notification): void {
+    this.markRead(notification);
+    if (notification.resourceType === 'BLOOD_REQUEST' && notification.resourceId) {
+      void this.router.navigate(['/solicitudes', notification.resourceId]);
+    }
   }
 
   markRead(notification: Notification): void {

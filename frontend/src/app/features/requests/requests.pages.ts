@@ -7,12 +7,15 @@ import {
   BLOOD_TYPES,
   BloodRequest,
   Donation,
+  DonationResponse,
   Municipality,
   PageResponse,
   Province,
   donationStatusLabel,
   donationStatusTone,
   requestPendingUnits,
+  responseStatusLabel,
+  responseStatusTone,
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage, AuthService } from '../../core/services/auth.service';
@@ -398,6 +401,49 @@ function localIsoDate(date = new Date()): string {
 
             @if (isOwner()) {
               <section class="mt-10 border-t border-ink-100 pt-8">
+                <h2 class="font-display text-2xl font-semibold text-ink-950">Personas interesadas en ayudar</h2>
+                <p class="mt-1 text-sm text-ink-600">
+                  Estos mensajes son ofrecimientos de ayuda. No cambian el progreso de unidades hasta
+                  que el donante pulse “Ya doné” y tú confirmes la recepción.
+                </p>
+                @if (offers().length) {
+                  <div class="mt-5 grid gap-4">
+                    @for (offer of offers(); track offer.id) {
+                      <article class="rounded-2xl border border-ink-100 p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <h3 class="font-bold text-ink-950">
+                              {{ offer.donorName }}
+                              @if (offer.donorBloodType) {
+                                <span class="text-brand-700">— {{ offer.donorBloodType }}</span>
+                              }
+                            </h3>
+                            <p class="mt-1 text-sm text-ink-500">
+                              Ofreció ayudar el {{ offer.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                            </p>
+                          </div>
+                          <app-badge [tone]="offerTone(offer.status)">
+                            {{ offerLabel(offer.status) }}
+                          </app-badge>
+                        </div>
+                        @if (offer.message) {
+                          <p class="mt-3 text-sm leading-relaxed text-ink-700">“{{ offer.message }}”</p>
+                        } @else {
+                          <p class="mt-3 text-sm text-ink-500">Sin mensaje adicional.</p>
+                        }
+                      </article>
+                    }
+                  </div>
+                } @else {
+                  <p class="mt-5 rounded-xl border border-dashed border-ink-200 bg-ink-50 px-4 py-4 text-sm text-ink-600">
+                    Cuando un donante pulse “Quiero ayudar”, su mensaje aparecerá aquí.
+                  </p>
+                }
+              </section>
+            }
+
+            @if (isOwner()) {
+              <section class="mt-10 border-t border-ink-100 pt-8">
                 <h2 class="font-display text-2xl font-semibold text-ink-950">Donaciones reportadas</h2>
                 <p class="mt-1 text-sm text-ink-600">
                   Confirma cuántas unidades recibiste realmente de cada donante. El progreso solo
@@ -445,19 +491,23 @@ function localIsoDate(date = new Date()): string {
                 Envía tu intención de ayudar. La persona solicitante podrá coordinar contigo de forma
                 segura.
               </p>
-              @if (auth.isDonor() && !isOwner()) {
+              @if (auth.isDonor() && !isOwner() && myActiveOffer()) {
+                <p class="mt-6 rounded-xl bg-ink-900 px-4 py-3 text-sm font-semibold text-emerald-200">
+                  Ya ofreciste ayudar. El creador de la solicitud recibió tu mensaje.
+                </p>
+              } @else if (auth.isDonor() && !isOwner()) {
                 <form class="mt-6" [formGroup]="responseForm" (ngSubmit)="respond()">
                   <label>
-                    <span class="mb-1.5 block text-sm font-semibold">Mensaje opcional</span>
+                    <span class="mb-1.5 block text-sm font-semibold">Mensaje para quien publicó la solicitud</span>
                     <textarea
                       formControlName="message"
                       rows="3"
                       maxlength="500"
                       class="form-control !border-ink-700 !bg-ink-900 !text-white"
-                      placeholder="Indica cuándo podrías acudir"
+                      placeholder="Hola, soy O+ y puedo donar mañana en la mañana."
                     ></textarea>
                   </label>
-                  <button type="submit" class="btn-primary mt-4 w-full" [disabled]="sending()">
+                  <button type="submit" class="btn-primary mt-4 w-full" [disabled]="sending() || !canOfferHelp()">
                     {{ sending() ? 'Enviando…' : 'Quiero ayudar' }}
                   </button>
                 </form>
@@ -599,6 +649,7 @@ export class RequestDetailPage implements OnInit {
   readonly today = localIsoDate();
   readonly request = signal<BloodRequest | null>(null);
   readonly donations = signal<Donation[]>([]);
+  readonly offers = signal<DonationResponse[]>([]);
   readonly loading = signal(true);
   readonly sending = signal(false);
   readonly reporting = signal(false);
@@ -622,6 +673,7 @@ export class RequestDetailPage implements OnInit {
       next: (request) => {
         this.request.set(request);
         this.loadDonations(request.id);
+        this.loadOffers(request.id);
       },
       error: () => this.loading.set(false),
       complete: () => this.loading.set(false),
@@ -636,6 +688,30 @@ export class RequestDetailPage implements OnInit {
   maxReportable(): number {
     const request = this.request();
     return request ? Math.max(0, requestPendingUnits(request)) : 0;
+  }
+
+  canOfferHelp(): boolean {
+    const request = this.request();
+    if (!request || !this.auth.isDonor() || this.isOwner()) return false;
+    if (request.status !== 'OPEN' && request.status !== 'IN_PROGRESS') return false;
+    return !this.myActiveOffer();
+  }
+
+  myActiveOffer(): DonationResponse | undefined {
+    const userId = this.auth.user()?.id;
+    return this.offers().find(
+      (offer) =>
+        offer.donorUserId === userId &&
+        (offer.status === 'PENDING' || offer.status === 'ACCEPTED'),
+    );
+  }
+
+  offerLabel(status: string): string {
+    return responseStatusLabel(status);
+  }
+
+  offerTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
+    return responseStatusTone(status);
   }
 
   canReportDonation(): boolean {
@@ -705,8 +781,9 @@ export class RequestDetailPage implements OnInit {
     this.sending.set(true);
     this.api.respondToRequest(this.request()!.id, this.responseForm.controls.message.value).subscribe({
       next: () => {
-        this.toast.success('Tu respuesta fue enviada. Revisa tus notificaciones para dar seguimiento.');
+        this.toast.success('Tu ofrecimiento de ayuda fue enviado.');
         this.responseForm.reset();
+        this.loadOffers(this.request()!.id);
       },
       error: (error) => {
         this.sending.set(false);
@@ -771,6 +848,7 @@ export class RequestDetailPage implements OnInit {
       next: (request) => this.request.set(request),
     });
     this.loadDonations(id);
+    this.loadOffers(id);
   }
 
   private loadDonations(id: number): void {
@@ -781,6 +859,17 @@ export class RequestDetailPage implements OnInit {
     this.api.requestDonations(id).subscribe({
       next: (donations) => this.donations.set(donations),
       error: () => this.donations.set([]),
+    });
+  }
+
+  private loadOffers(id: number): void {
+    if (!this.auth.isAuthenticated()) {
+      this.offers.set([]);
+      return;
+    }
+    this.api.requestResponses(id).subscribe({
+      next: (offers) => this.offers.set(offers),
+      error: () => this.offers.set([]),
     });
   }
 }
