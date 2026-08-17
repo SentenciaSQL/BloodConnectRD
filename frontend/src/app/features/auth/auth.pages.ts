@@ -91,7 +91,7 @@ function normalizedPhone(value: string): string {
         </div>
       </div>
       <div
-        class="relative hidden bg-[url('https://images.unsplash.com/photo-1615461066841-6116e61058f4?auto=format&fit=crop&w=1400&q=85')] bg-cover bg-center lg:block"
+        class="relative hidden bg-[url('/images/login-side.jpg')] bg-cover bg-center lg:block"
       >
         <div class="absolute inset-0 bg-gradient-to-t from-ink-950/85 via-ink-950/20 to-transparent"></div>
         <div class="absolute bottom-0 max-w-lg p-12 text-white">

@@ -19,10 +19,10 @@ import { HOW_TO_STEPS } from '../../core/seo/content';
           <a routerLink="/centros" class="btn-primary mt-8">Encontrar un centro</a>
         </div>
         <img
-          src="https://images.unsplash.com/photo-1615461065929-4f8ffed6ca40?auto=format&fit=crop&w=1200&q=75"
+          src="/images/how-to-donate.jpg"
           alt="Proceso seguro de donación de sangre en un centro de salud"
           width="1200"
-          height="800"
+          height="677"
           loading="lazy"
           decoding="async"
           class="min-h-80 w-full rounded-3xl object-cover"
