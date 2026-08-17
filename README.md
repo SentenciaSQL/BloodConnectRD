@@ -122,6 +122,8 @@ npm start
 
 ```bash
 cd mobile
+# Configura MAPS_API_KEY en android/local.properties (Android)
+# y MAPS_API_KEY_IOS en ios/Flutter/Secrets.xcconfig (iOS). Ver mobile/README.md.
 flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080 --dart-define=ENV=development
 ```
