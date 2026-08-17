@@ -431,6 +431,14 @@ function localIsoDate(date = new Date()): string {
                         } @else {
                           <p class="mt-3 text-sm text-ink-500">Sin mensaje adicional.</p>
                         }
+                        <button
+                          type="button"
+                          class="btn-primary mt-4"
+                          [disabled]="contactingId() === offer.id"
+                          (click)="contact(offer)"
+                        >
+                          {{ contactingId() === offer.id ? 'Abriendo…' : 'Contactar' }}
+                        </button>
                       </article>
                     }
                   </div>
@@ -493,7 +501,8 @@ function localIsoDate(date = new Date()): string {
               </p>
               @if (auth.isDonor() && !isOwner() && myActiveOffer()) {
                 <p class="mt-6 rounded-xl bg-ink-900 px-4 py-3 text-sm font-semibold text-emerald-200">
-                  Ya ofreciste ayudar. El creador de la solicitud recibió tu mensaje.
+                  Ya ofreciste ayudar. El creador de la solicitud recibió tu mensaje y podrá
+                contactarte por el chat interno de BloodConnect.
                 </p>
               } @else if (auth.isDonor() && !isOwner()) {
                 <form class="mt-6" [formGroup]="responseForm" (ngSubmit)="respond()">
@@ -642,6 +651,7 @@ function localIsoDate(date = new Date()): string {
 export class RequestDetailPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
   readonly auth = inject(AuthService);
@@ -654,6 +664,7 @@ export class RequestDetailPage implements OnInit {
   readonly sending = signal(false);
   readonly reporting = signal(false);
   readonly confirmingId = signal<number | null>(null);
+  readonly contactingId = signal<number | null>(null);
   readonly reportModalOpen = signal(false);
   readonly confirmModalOpen = signal(false);
   readonly donationToConfirm = signal<Donation | null>(null);
@@ -712,6 +723,22 @@ export class RequestDetailPage implements OnInit {
 
   offerTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
     return responseStatusTone(status);
+  }
+
+  contact(offer: DonationResponse): void {
+    const request = this.request();
+    if (!request) return;
+    this.contactingId.set(offer.id);
+    this.api.openConversation(request.id, offer.donorUserId).subscribe({
+      next: (conversation) => {
+        void this.router.navigate(['/dashboard/mensajes', conversation.id]);
+      },
+      error: (error) => {
+        this.contactingId.set(null);
+        this.toast.error(apiErrorMessage(error));
+      },
+      complete: () => this.contactingId.set(null),
+    });
   }
 
   canReportDonation(): boolean {

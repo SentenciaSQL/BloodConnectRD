@@ -204,6 +204,33 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface Conversation {
+  id: number;
+  bloodRequestId: number;
+  bloodRequestPatientName: string;
+  bloodRequestHospital: string;
+  bloodRequestBloodType?: BloodType | string | null;
+  ownerUserId: number;
+  donorUserId: number;
+  otherUserId: number;
+  otherUserName: string;
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversationId: number;
+  senderId: number;
+  senderName: string;
+  body: string;
+  mine: boolean;
+  createdAt: string;
+}
+
 export interface Compatibility {
   bloodType: BloodType;
   canDonateTo: BloodType[];

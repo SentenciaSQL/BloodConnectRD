@@ -82,8 +82,8 @@ function normalizePhone(value: string): string {
       <a routerLink="/dashboard/solicitudes" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
         + Crear solicitud
       </a>
-      <a routerLink="/dashboard/perfil" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
-        Actualizar mi perfil
+      <a routerLink="/dashboard/mensajes" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
+        Mensajes
       </a>
       <a routerLink="/dashboard/notificaciones" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
         Ver notificaciones
@@ -897,6 +897,10 @@ export class NotificationsPage implements OnInit {
 
   open(notification: Notification): void {
     this.markRead(notification);
+    if (notification.resourceType === 'CONVERSATION' && notification.resourceId) {
+      void this.router.navigate(['/dashboard/mensajes', notification.resourceId]);
+      return;
+    }
     if (notification.resourceType === 'BLOOD_REQUEST' && notification.resourceId) {
       void this.router.navigate(['/solicitudes', notification.resourceId]);
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../core/networking/api_models.dart';
@@ -7,6 +8,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/domain/auth_controller.dart';
 import '../../donations/data/donation_repository.dart';
+import '../../messages/data/conversation_repository.dart';
 import '../data/blood_request_repository.dart';
 
 class BloodRequestDetailPage extends ConsumerStatefulWidget {
@@ -77,6 +79,24 @@ class _BloodRequestDetailPageState
           ),
         ),
       );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyError(error))));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _contact(DonationResponseModel offer) async {
+    setState(() => _submitting = true);
+    try {
+      final conversation = await ref
+          .read(conversationRepositoryProvider)
+          .open(requestId: widget.requestId, donorUserId: offer.donorUserId);
+      if (!mounted) return;
+      context.push('/mensajes/${conversation.id}');
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -245,7 +265,12 @@ class _BloodRequestDetailPageState
                     'Cuando un donante pulse “Quiero ayudar”, su mensaje aparecerá aquí.',
                   )
                 else
-                  for (final offer in helpOffers) _HelpOfferTile(offer: offer),
+                  for (final offer in helpOffers)
+                    _HelpOfferTile(
+                      offer: offer,
+                      contacting: _submitting,
+                      onContact: () => _contact(offer),
+                    ),
                 const SizedBox(height: 24),
                 const SectionHeader(title: 'Donaciones reportadas'),
                 const SizedBox(height: 8),
@@ -278,7 +303,7 @@ class _BloodRequestDetailPageState
                     child: const Padding(
                       padding: EdgeInsets.all(16),
                       child: Text(
-                        'Ya ofreciste ayudar. El creador de la solicitud recibió tu mensaje.',
+                        'Ya ofreciste ayudar. El creador de la solicitud recibió tu mensaje y podrá contactarte por el chat interno de BloodConnect.',
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -340,9 +365,15 @@ class _BloodRequestDetailPageState
 }
 
 class _HelpOfferTile extends StatelessWidget {
-  const _HelpOfferTile({required this.offer});
+  const _HelpOfferTile({
+    required this.offer,
+    required this.contacting,
+    required this.onContact,
+  });
 
   final DonationResponseModel offer;
+  final bool contacting;
+  final VoidCallback onContact;
 
   @override
   Widget build(BuildContext context) {
@@ -369,6 +400,12 @@ class _HelpOfferTile extends StatelessWidget {
               (offer.message == null || offer.message!.isEmpty)
                   ? 'Sin mensaje adicional.'
                   : '“${offer.message}”',
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: contacting ? null : onContact,
+              icon: const Icon(Icons.chat_outlined),
+              label: Text(contacting ? 'Abriendo…' : 'Contactar'),
             ),
           ],
         ),

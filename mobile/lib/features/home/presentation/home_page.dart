@@ -69,6 +69,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: const Text('BloodConnect RD'),
         actions: [
           IconButton(
+            tooltip: 'Mensajes',
+            onPressed: () => context.push('/mensajes'),
+            icon: const Icon(Icons.chat_outlined),
+          ),
+          IconButton(
             tooltip: 'Notificaciones',
             onPressed: () => context.push('/notificaciones'),
             icon: const Icon(Icons.notifications_outlined),
