@@ -1,0 +1,8 @@
+## Referencia para Google Maps en Android.
+##
+## NO reemplaces android/local.properties completo: Flutter guarda ahí
+## sdk.dir y flutter.sdk. Añade solo esta línea a tu local.properties local.
+##
+## android/local.properties no se sube a git.
+
+MAPS_API_KEY=YOUR_ANDROID_GOOGLE_MAPS_API_KEY

@@ -26,6 +26,7 @@ import UIKit
     // Skip unresolved xcconfig placeholders and example placeholders.
     guard !trimmed.isEmpty,
           !trimmed.hasPrefix("$("),
+          !trimmed.hasPrefix("YOUR_"),
           trimmed.hasPrefix("AIza")
     else {
       return

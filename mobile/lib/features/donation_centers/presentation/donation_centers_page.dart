@@ -84,7 +84,6 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
     final municipalities = _provinceId == null
         ? const AsyncValue<List<Municipality>>.data([])
         : ref.watch(municipalitiesProvider(_provinceId!));
-    final hasMapsKey = ref.watch(appConfigProvider).hasGoogleMapsKey;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Centros de donación'),
@@ -207,7 +206,6 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                 if (_mapMode) {
                   return _CentersMap(
                     centers: items,
-                    hasMapsKey: hasMapsKey,
                     onShowList: () => setState(() => _mapMode = false),
                   );
                 }
@@ -236,12 +234,10 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
 class _CentersMap extends StatelessWidget {
   const _CentersMap({
     required this.centers,
-    required this.hasMapsKey,
     required this.onShowList,
   });
 
   final List<DonationCenterModel> centers;
-  final bool hasMapsKey;
   final VoidCallback onShowList;
 
   @override
@@ -249,12 +245,11 @@ class _CentersMap extends StatelessWidget {
     final located = centers
         .where((center) => center.latitude != null && center.longitude != null)
         .toList();
-    if (!hasMapsKey || located.isEmpty) {
+    if (located.isEmpty) {
       return EmptyState(
         title: 'Mapa no disponible',
-        message: hasMapsKey
-            ? 'Estos centros no tienen coordenadas. Puedes consultarlos en la lista.'
-            : 'Configura GOOGLE_MAPS_API_KEY para activar el mapa. La lista sigue disponible.',
+        message:
+            'Estos centros no tienen coordenadas. Puedes consultarlos en la lista.',
         icon: Icons.map_outlined,
         action: OutlinedButton.icon(
           onPressed: onShowList,
