@@ -188,7 +188,13 @@ public class ConversationService {
         Instant lastRead = conversation.getOwner().getId().equals(currentUserId)
                 ? conversation.getOwnerLastReadAt()
                 : conversation.getDonorLastReadAt();
-        long unread = messageRepository.countUnread(conversation.getId(), currentUserId, lastRead);
+        long unread = lastRead == null
+                ? messageRepository.countByConversationIdAndSenderIdNot(conversation.getId(), currentUserId)
+                : messageRepository.countByConversationIdAndSenderIdNotAndCreatedAtAfter(
+                        conversation.getId(),
+                        currentUserId,
+                        lastRead
+                );
         BloodRequest request = conversation.getBloodRequest();
         return new ConversationDto(
                 conversation.getId(),

@@ -18,15 +18,11 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
             """)
     List<ConversationMessage> findThread(@Param("conversationId") Long conversationId);
 
-    @Query("""
-            select count(m) from ConversationMessage m
-            where m.conversation.id = :conversationId
-              and m.sender.id <> :userId
-              and (:lastReadAt is null or m.createdAt > :lastReadAt)
-            """)
-    long countUnread(
-            @Param("conversationId") Long conversationId,
-            @Param("userId") Long userId,
-            @Param("lastReadAt") Instant lastReadAt
+    long countByConversationIdAndSenderIdNot(Long conversationId, Long senderId);
+
+    long countByConversationIdAndSenderIdNotAndCreatedAtAfter(
+            Long conversationId,
+            Long senderId,
+            Instant createdAt
     );
 }
