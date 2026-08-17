@@ -41,7 +41,7 @@ class MyRequestsPage extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final request = items[index];
-                return BloodRequestCard(
+                return RequestCard(
                   request: request,
                   onTap: () => context.push('/solicitudes/${request.id}'),
                 );
