@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/domain/auth_controller.dart';
 import '../../blood_requests/data/blood_request_repository.dart';
 import '../../donors/data/donor_repository.dart';
+import '../../messages/data/conversation_repository.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -68,6 +69,18 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         title: const Text('BloodConnect RD'),
         actions: [
+          IconButton(
+            tooltip: 'Mensajes',
+            onPressed: () => context.push('/mensajes'),
+            icon: Badge(
+              isLabelVisible:
+                  (ref.watch(unreadMessageCountProvider).valueOrNull ?? 0) > 0,
+              label: Text(
+                '${ref.watch(unreadMessageCountProvider).valueOrNull ?? 0}',
+              ),
+              child: const Icon(Icons.chat_outlined),
+            ),
+          ),
           IconButton(
             tooltip: 'Notificaciones',
             onPressed: () => context.push('/notificaciones'),
@@ -177,14 +190,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onTap: () => context.push('/solicitudes/crear'),
                 ),
                 _QuickAction(
-                  icon: Icons.search,
-                  label: 'Buscar solicitudes',
-                  onTap: () => context.go('/solicitudes'),
+                  icon: Icons.assignment_outlined,
+                  label: 'Mis solicitudes',
+                  onTap: () => context.push('/mis-solicitudes'),
                 ),
                 _QuickAction(
                   icon: Icons.local_hospital_outlined,
                   label: 'Ver centros',
                   onTap: () => context.go('/centros'),
+                ),
+                _QuickAction(
+                  icon: Icons.volunteer_activism_outlined,
+                  label: 'Donar',
+                  onTap: () => context.push('/donar'),
                 ),
                 _QuickAction(
                   icon: Icons.history,

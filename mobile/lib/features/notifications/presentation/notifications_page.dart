@@ -43,6 +43,10 @@ class NotificationsPage extends ConsumerWidget {
       }
     }
     if (!context.mounted) return;
+    if (item.resourceType == 'CONVERSATION' && item.resourceId != null) {
+      context.push('/mensajes/${item.resourceId}');
+      return;
+    }
     if (item.resourceType == 'BLOOD_REQUEST' && item.resourceId != null) {
       context.push('/solicitudes/${item.resourceId}');
     }

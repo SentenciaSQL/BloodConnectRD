@@ -11,6 +11,17 @@ public interface DonationResponseRepository extends JpaRepository<DonationRespon
 
     List<DonationResponse> findByBloodRequestIdOrderByCreatedAtDesc(Long bloodRequestId);
 
+    List<DonationResponse> findByBloodRequestIdAndDonorIdOrderByCreatedAtDesc(
+            Long bloodRequestId,
+            Long donorId
+    );
+
+    List<DonationResponse> findByBloodRequestIdAndDonorIdAndStatusIn(
+            Long bloodRequestId,
+            Long donorId,
+            Collection<ResponseStatus> statuses
+    );
+
     boolean existsByBloodRequestIdAndDonorIdAndStatusIn(
             Long bloodRequestId,
             Long donorId,

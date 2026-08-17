@@ -6,14 +6,10 @@ class AppConfig {
   const AppConfig({
     required this.environment,
     required this.apiBaseUrl,
-    required this.googleMapsApiKey,
   });
 
   final AppEnvironment environment;
   final String apiBaseUrl;
-  final String googleMapsApiKey;
-
-  bool get hasGoogleMapsKey => googleMapsApiKey.trim().isNotEmpty;
 
   static const country = 'DO';
   static const locale = 'es-DO';
@@ -34,7 +30,6 @@ class AppConfig {
   static AppConfig fromEnvironment() {
     const envName = String.fromEnvironment('ENV', defaultValue: 'development');
     const apiUrlDefine = String.fromEnvironment('API_BASE_URL');
-    const googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 
     final environment = switch (envName) {
       'staging' => AppEnvironment.staging,
@@ -49,7 +44,6 @@ class AppConfig {
     return AppConfig(
       environment: environment,
       apiBaseUrl: apiUrl,
-      googleMapsApiKey: googleMapsApiKey,
     );
   }
 }

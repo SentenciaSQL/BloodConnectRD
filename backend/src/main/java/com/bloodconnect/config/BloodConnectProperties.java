@@ -8,6 +8,7 @@ public record BloodConnectProperties(
         String locale,
         String timezone,
         String dateFormat,
-        String datetimeFormat
+        String datetimeFormat,
+        String publicSiteUrl
 ) {
 }

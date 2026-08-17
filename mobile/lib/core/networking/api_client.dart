@@ -21,6 +21,7 @@ class ApiClient {
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 20),
         headers: const {'Accept': 'application/json'},
+        listFormat: ListFormat.multi,
       ),
     );
     _dio.interceptors.add(

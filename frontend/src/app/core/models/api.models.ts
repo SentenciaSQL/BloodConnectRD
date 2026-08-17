@@ -3,11 +3,33 @@ export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
 export type Urgency = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type Availability = 'AVAILABLE' | 'TEMPORARILY_UNAVAILABLE' | 'INACTIVE';
 export type RequestStatus = 'OPEN' | 'IN_PROGRESS' | 'FULFILLED' | 'CANCELLED' | 'EXPIRED';
-export type DonationStatus = 'COMPLETED' | 'CANCELLED';
+export type DonationStatus =
+  | 'REPORTED'
+  | 'PARTIALLY_CONFIRMED'
+  | 'CONFIRMED'
+  | 'CANCELLED'
+  | 'COMPLETED';
+export type ResponseStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 export type CenterType = 'HOSPITAL' | 'CLINIC' | 'BLOOD_BANK' | 'MEDICAL_CENTER' | 'OTHER';
 export type Sex = 'MALE' | 'FEMALE' | 'OTHER';
 
 export const BLOOD_TYPES: BloodType[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+export const DONATION_STATUS_LABELS: Record<string, string> = {
+  REPORTED: 'Pendiente de confirmación',
+  PARTIALLY_CONFIRMED: 'Confirmada parcialmente',
+  CONFIRMED: 'Confirmada',
+  CANCELLED: 'Cancelada',
+  COMPLETED: 'Confirmada',
+};
+
+export const RESPONSE_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Interesado en ayudar',
+  ACCEPTED: 'Interesado en ayudar',
+  REJECTED: 'No seleccionado',
+  COMPLETED: 'Donación reportada',
+  CANCELLED: 'Cancelado',
+};
 
 export interface User {
   id: number;
@@ -84,6 +106,9 @@ export interface BloodRequest {
   bloodType: BloodType;
   unitsRequired: number;
   completedUnits: number;
+  pendingUnits: number;
+  progressPercent: number;
+  progress?: number;
   hospital: string;
   provinceId: number;
   provinceName: string;
@@ -128,15 +153,21 @@ export interface DonationCenter {
 export interface Donation {
   id: number;
   donorId: number;
+  donorUserId: number;
   donorName: string;
   bloodRequestId?: number | null;
+  patientName?: string | null;
+  hospital?: string | null;
+  receiverName?: string | null;
   donationCenterId?: number | null;
   donationCenterName?: string | null;
   donationDate: string;
   units: number;
+  confirmedUnits: number;
   notes?: string;
   status: DonationStatus;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface DonationHistory {
@@ -148,6 +179,20 @@ export interface DonationHistory {
   history: Donation[];
 }
 
+export interface DonationResponse {
+  id: number;
+  bloodRequestId: number;
+  donorId: number;
+  donorUserId: number;
+  donorName: string;
+  donorPhone?: string | null;
+  donorBloodType?: BloodType | string | null;
+  status: ResponseStatus | string;
+  message?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Notification {
   id: number;
   type: string;
@@ -157,6 +202,40 @@ export interface Notification {
   resourceId?: number | null;
   read: boolean;
   createdAt: string;
+}
+
+export interface Conversation {
+  id: number;
+  bloodRequestId: number;
+  bloodRequestPatientName: string;
+  bloodRequestHospital: string;
+  bloodRequestBloodType?: BloodType | string | null;
+  ownerUserId: number;
+  donorUserId: number;
+  otherUserId: number;
+  otherUserName: string;
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversationId: number;
+  senderId: number;
+  senderName: string;
+  body: string;
+  mine: boolean;
+  status?: 'SENT' | 'DELIVERED' | 'READ' | string;
+  deliveredAt?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface UnreadCount {
+  unreadCount: number;
 }
 
 export interface Compatibility {
@@ -220,4 +299,42 @@ export interface ApiError {
   message?: string;
   detail?: string;
   errors?: Record<string, string>;
+}
+
+export function requestPendingUnits(request: Pick<BloodRequest, 'unitsRequired' | 'completedUnits' | 'pendingUnits'>): number {
+  if (request.pendingUnits != null) return request.pendingUnits;
+  return Math.max(0, request.unitsRequired - request.completedUnits);
+}
+
+export function requestProgressPercent(
+  request: Pick<BloodRequest, 'unitsRequired' | 'completedUnits' | 'progressPercent' | 'progress'>,
+): number {
+  if (!request.unitsRequired) return 0;
+  const ratio =
+    request.progress != null
+      ? request.progress
+      : request.completedUnits / request.unitsRequired;
+  return Math.min(100, Math.max(0, Math.round(ratio * 100)));
+}
+
+export function donationStatusLabel(status: string): string {
+  return DONATION_STATUS_LABELS[status] ?? status;
+}
+
+export function responseStatusLabel(status: string): string {
+  return RESPONSE_STATUS_LABELS[status] ?? status;
+}
+
+export function responseStatusTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
+  if (status === 'ACCEPTED' || status === 'PENDING') return 'green';
+  if (status === 'COMPLETED') return 'amber';
+  if (status === 'REJECTED' || status === 'CANCELLED') return 'red';
+  return 'neutral';
+}
+
+export function donationStatusTone(status: string): 'red' | 'green' | 'amber' | 'neutral' {
+  if (status === 'CONFIRMED' || status === 'COMPLETED') return 'green';
+  if (status === 'PARTIALLY_CONFIRMED') return 'amber';
+  if (status === 'CANCELLED') return 'red';
+  return 'neutral';
 }

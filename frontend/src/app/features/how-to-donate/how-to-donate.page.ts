@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { HOW_TO_STEPS } from '../../core/seo/content';
+
 @Component({
   selector: 'app-how-to-donate-page',
   standalone: true,
@@ -16,11 +18,15 @@ import { RouterLink } from '@angular/router';
           </p>
           <a routerLink="/centros" class="btn-primary mt-8">Encontrar un centro</a>
         </div>
-        <div
-          class="min-h-80 rounded-3xl bg-[url('https://images.unsplash.com/photo-1615461065929-4f8ffed6ca40?auto=format&fit=crop&w=1200&q=85')] bg-cover bg-center"
-          role="img"
-          aria-label="Proceso seguro de donación de sangre"
-        ></div>
+        <img
+          src="/images/how-to-donate.jpg"
+          alt="Proceso seguro de donación de sangre en un centro de salud"
+          width="1200"
+          height="677"
+          loading="lazy"
+          decoding="async"
+          class="min-h-80 w-full rounded-3xl object-cover"
+        />
       </div>
     </section>
 
@@ -87,26 +93,5 @@ export class HowToDonatePage {
       copy: 'Presenta una cédula o documento válido y comparte tu información de salud con honestidad.',
     },
   ];
-  readonly process = [
-    {
-      number: '01',
-      title: 'Registro',
-      copy: 'El centro verifica tu identidad y registra tus datos básicos.',
-    },
-    {
-      number: '02',
-      title: 'Evaluación',
-      copy: 'Personal capacitado revisa tu historial, signos vitales y nivel de hemoglobina.',
-    },
-    {
-      number: '03',
-      title: 'Donación',
-      copy: 'La extracción se realiza con material estéril y suele tomar entre ocho y doce minutos.',
-    },
-    {
-      number: '04',
-      title: 'Refrigerio',
-      copy: 'Al finalizar, descansas y recibes líquidos mientras el personal confirma que te sientes bien.',
-    },
-  ];
+  readonly process = HOW_TO_STEPS;
 }

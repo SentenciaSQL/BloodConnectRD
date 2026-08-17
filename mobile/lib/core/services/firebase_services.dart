@@ -51,11 +51,17 @@ class FirebaseMessagingService {
   final ApiClient _api;
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _tapSubscription;
+  StreamSubscription<RemoteMessage>? _foregroundSubscription;
   String? _registeredToken;
+  void Function(String location)? onNotificationRoute;
+  void Function()? onUnreadRefresh;
 
   Future<void> start({
     void Function(String location)? onNotificationRoute,
+    void Function()? onUnreadRefresh,
   }) async {
+    this.onNotificationRoute = onNotificationRoute ?? this.onNotificationRoute;
+    this.onUnreadRefresh = onUnreadRefresh ?? this.onUnreadRefresh;
     if (!OptionalFirebase.isAvailable) return;
     try {
       final messaging = FirebaseMessaging.instance;
@@ -64,11 +70,14 @@ class FirebaseMessagingService {
       if (token != null) await _register(token);
       _tokenSubscription ??= messaging.onTokenRefresh.listen(_registerSafely);
       _tapSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen(
-        (message) => _routeMessage(message, onNotificationRoute),
+        (message) => _routeMessage(message, this.onNotificationRoute),
       );
+      _foregroundSubscription ??= FirebaseMessaging.onMessage.listen((_) {
+        this.onUnreadRefresh?.call();
+      });
       final initialMessage = await messaging.getInitialMessage();
       if (initialMessage != null) {
-        _routeMessage(initialMessage, onNotificationRoute);
+        _routeMessage(initialMessage, this.onNotificationRoute);
       }
     } catch (_) {
       if (kDebugMode) {
@@ -112,6 +121,10 @@ class FirebaseMessagingService {
   ) {
     final resourceType = message.data['resourceType']?.toString();
     final resourceId = message.data['resourceId']?.toString();
+    if (resourceType == 'CONVERSATION' && resourceId != null) {
+      onNotificationRoute?.call('/mensajes/$resourceId');
+      return;
+    }
     if (resourceType == 'BLOOD_REQUEST' && resourceId != null) {
       onNotificationRoute?.call('/solicitudes/$resourceId');
     }
@@ -120,6 +133,7 @@ class FirebaseMessagingService {
   void dispose() {
     _tokenSubscription?.cancel();
     _tapSubscription?.cancel();
+    _foregroundSubscription?.cancel();
   }
 }
 

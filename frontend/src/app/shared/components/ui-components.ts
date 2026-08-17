@@ -8,7 +8,12 @@ import {
   Donation,
   DonationCenter,
   Urgency,
+  donationStatusLabel,
+  donationStatusTone,
+  requestPendingUnits,
+  requestProgressPercent,
 } from '../../core/models/api.models';
+import { bloodRequestSlug } from '../../core/seo/request-slug';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
@@ -216,8 +221,18 @@ export class UrgencyBadgeComponent {
           <dd class="font-bold text-ink-900">{{ request().deadline | date: 'd MMM' }}</dd>
         </div>
       </dl>
+      <div class="mt-4 h-2 overflow-hidden rounded-full bg-ink-100">
+        <div
+          class="h-full rounded-full bg-brand-600"
+          [style.width.%]="progressPercent()"
+        ></div>
+      </div>
+      <p class="mt-2 text-xs text-ink-500">
+        {{ request().completedUnits }} de {{ request().unitsRequired }} unidades recibidas
+        ({{ progressPercent() }}%)
+      </p>
       <a
-        [routerLink]="['/solicitudes', request().id]"
+        [routerLink]="['/solicitudes', slug()]"
         class="mt-auto pt-4 text-sm font-bold text-brand-700 hover:text-brand-900"
       >
         Ver solicitud <span aria-hidden="true">→</span>
@@ -227,6 +242,11 @@ export class UrgencyBadgeComponent {
 })
 export class RequestCardComponent {
   readonly request = input.required<BloodRequest>();
+  readonly slug = () => bloodRequestSlug(this.request());
+
+  progressPercent(): number {
+    return requestProgressPercent(this.request());
+  }
 }
 
 @Component({
@@ -237,23 +257,34 @@ export class RequestCardComponent {
     <article class="rounded-2xl border border-ink-100 bg-white p-5 shadow-sm">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p class="text-sm text-ink-500">{{ donation().donationDate | date: 'longDate' }}</p>
-          <h3 class="mt-1 font-bold text-ink-950">
-            {{ donation().donationCenterName || 'Donación vinculada a solicitud' }}
+          <h3 class="font-bold text-ink-950">
+            {{ donation().hospital || donation().donationCenterName || 'Donación registrada' }}
           </h3>
+          @if (donation().patientName) {
+            <p class="mt-1 text-sm text-ink-600">Solicitud: {{ donation().patientName }}</p>
+          }
+          @if (donation().receiverName) {
+            <p class="text-sm text-ink-500">Receptor: {{ donation().receiverName }}</p>
+          }
+          <p class="mt-1 text-sm text-ink-500">Fecha: {{ donation().donationDate | date: 'dd/MM/yyyy' }}</p>
         </div>
-        <app-badge [tone]="donation().status === 'COMPLETED' ? 'green' : 'red'">
-          {{ donation().status === 'COMPLETED' ? 'Completada' : 'Cancelada' }}
+        <app-badge [tone]="donationStatusTone(donation().status)">
+          {{ donationStatusLabel(donation().status) }}
         </app-badge>
       </div>
-      <p class="mt-3 text-sm text-ink-600">
-        {{ donation().units }} {{ donation().units === 1 ? 'unidad registrada' : 'unidades registradas' }}
+      <p class="mt-3 text-sm font-semibold text-ink-700">
+        Unidades donadas: {{ donation().units }}
+        @if (donation().confirmedUnits) {
+          · Confirmadas: {{ donation().confirmedUnits }}
+        }
       </p>
     </article>
   `,
 })
 export class DonationCardComponent {
   readonly donation = input.required<Donation>();
+  readonly donationStatusLabel = donationStatusLabel;
+  readonly donationStatusTone = donationStatusTone;
 }
 
 @Component({
@@ -296,6 +327,94 @@ export class DonationCenterCardComponent {
     MEDICAL_CENTER: 'Centro médico',
     OTHER: 'Otro centro',
   };
+}
+
+@Component({
+  selector: 'app-request-progress',
+  standalone: true,
+  template: `
+    <section [class]="compact() ? '' : 'rounded-2xl border border-ink-100 bg-ink-50 p-5'">
+      <dl class="grid gap-4 sm:grid-cols-4">
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades requeridas</dt>
+          <dd class="mt-1 text-xl font-bold text-ink-950">{{ request().unitsRequired }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades recibidas</dt>
+          <dd class="mt-1 text-xl font-bold text-ink-950">{{ request().completedUnits }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Unidades pendientes</dt>
+          <dd class="mt-1 text-xl font-bold text-ink-950">{{ pendingUnits() }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-bold uppercase tracking-wider text-ink-500">Progreso</dt>
+          <dd class="mt-1 text-xl font-bold text-brand-700">{{ progressPercent() }}%</dd>
+        </div>
+      </dl>
+      <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-ink-100">
+        <div
+          class="h-full rounded-full bg-brand-600 transition-[width]"
+          [style.width.%]="progressPercent()"
+        ></div>
+      </div>
+      <p class="mt-2 text-sm font-medium text-ink-600">
+        {{ request().completedUnits }} de {{ request().unitsRequired }} unidades recibidas
+        ({{ progressPercent() }}%)
+      </p>
+    </section>
+  `,
+})
+export class RequestProgressComponent {
+  readonly request = input.required<BloodRequest>();
+  readonly compact = input(false);
+
+  pendingUnits(): number {
+    return requestPendingUnits(this.request());
+  }
+
+  progressPercent(): number {
+    return requestProgressPercent(this.request());
+  }
+}
+
+@Component({
+  selector: 'app-units-stepper',
+  standalone: true,
+  template: `
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        class="btn-secondary !min-h-11 !w-11 !px-0 text-xl"
+        [disabled]="value() <= min()"
+        (click)="change(-1)"
+        aria-label="Disminuir unidades"
+      >
+        −
+      </button>
+      <span class="min-w-12 text-center text-3xl font-black text-ink-950">{{ value() }}</span>
+      <button
+        type="button"
+        class="btn-secondary !min-h-11 !w-11 !px-0 text-xl"
+        [disabled]="value() >= max()"
+        (click)="change(1)"
+        aria-label="Aumentar unidades"
+      >
+        +
+      </button>
+    </div>
+  `,
+})
+export class UnitsStepperComponent {
+  readonly value = input.required<number>();
+  readonly min = input(1);
+  readonly max = input(1);
+  readonly valueChange = output<number>();
+
+  change(delta: number): void {
+    const next = Math.min(this.max(), Math.max(this.min(), this.value() + delta));
+    if (next !== this.value()) this.valueChange.emit(next);
+  }
 }
 
 @Component({

@@ -8,6 +8,7 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/domain/auth_controller.dart';
 import '../../donations/data/donation_repository.dart';
 import '../../donors/data/donor_repository.dart';
+import '../../messages/data/conversation_repository.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -50,6 +51,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       appBar: AppBar(
         title: const Text('Mi perfil'),
         actions: [
+          IconButton(
+            tooltip: 'Mensajes',
+            onPressed: () => context.push('/mensajes'),
+            icon: Badge(
+              isLabelVisible:
+                  (ref.watch(unreadMessageCountProvider).valueOrNull ?? 0) > 0,
+              label: Text(
+                '${ref.watch(unreadMessageCountProvider).valueOrNull ?? 0}',
+              ),
+              child: const Icon(Icons.chat_outlined),
+            ),
+          ),
           IconButton(
             tooltip: 'Notificaciones',
             onPressed: () => context.push('/notificaciones'),
@@ -184,6 +197,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             },
           ),
           const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.chat_outlined),
+            title: const Text('Mensajes'),
+            subtitle: const Text('Conversaciones privadas sobre solicitudes'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/mensajes'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.bloodtype_outlined),
+            title: const Text('Mis solicitudes'),
+            subtitle: const Text('Consulta el progreso de unidades recibidas'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/mis-solicitudes'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.volunteer_activism_outlined),
+            title: const Text('Mis donaciones'),
+            subtitle: const Text('Reportes y estado de confirmación'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/donaciones'),
+          ),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
             title: const Text('Notificaciones'),

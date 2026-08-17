@@ -10,6 +10,18 @@ List<JsonMap> pageContent(Object? value) {
   return asJsonList(json['content']);
 }
 
+int readJsonInt(JsonMap json, List<String> keys, [int fallback = 0]) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = num.tryParse(value);
+      if (parsed != null) return parsed.toInt();
+    }
+  }
+  return fallback;
+}
+
 class AppUser {
   const AppUser({
     required this.id,
@@ -161,10 +173,12 @@ class DonorProfile {
 class BloodRequestModel {
   const BloodRequestModel({
     required this.id,
+    required this.createdById,
     required this.patientName,
     required this.bloodType,
     required this.unitsRequired,
     required this.completedUnits,
+    required this.pendingUnits,
     required this.hospital,
     required this.provinceName,
     required this.municipalityName,
@@ -177,29 +191,44 @@ class BloodRequestModel {
     this.distanceKm,
   });
 
-  factory BloodRequestModel.fromJson(JsonMap json) => BloodRequestModel(
-    id: (json['id'] as num).toInt(),
-    patientName: json['patientName']?.toString() ?? '',
-    bloodType: json['bloodType']?.toString() ?? '',
-    unitsRequired: (json['unitsRequired'] as num?)?.toInt() ?? 0,
-    completedUnits: (json['completedUnits'] as num?)?.toInt() ?? 0,
-    hospital: json['hospital']?.toString() ?? '',
-    provinceName: json['provinceName']?.toString() ?? '',
-    municipalityName: json['municipalityName']?.toString() ?? '',
-    address: json['address']?.toString() ?? '',
-    deadline: DateTime.tryParse(json['deadline']?.toString() ?? ''),
-    description: json['description']?.toString() ?? '',
-    contactPhone: json['contactPhone']?.toString() ?? '',
-    urgency: json['urgency']?.toString() ?? 'LOW',
-    status: json['status']?.toString() ?? 'OPEN',
-    distanceKm: (json['approximateDistanceKm'] as num?)?.toDouble(),
-  );
+  factory BloodRequestModel.fromJson(JsonMap json) {
+    final unitsRequired = readJsonInt(json, ['unitsRequired', 'requiredUnits']);
+    final completedUnits = readJsonInt(json, [
+      'completedUnits',
+      'confirmedUnits',
+      'receivedUnits',
+      'unitsReceived',
+    ]);
+    final computedPending = unitsRequired - completedUnits;
+    final pendingUnits = readJsonInt(json, ['pendingUnits'], computedPending < 0 ? 0 : computedPending);
+    return BloodRequestModel(
+      id: (json['id'] as num).toInt(),
+      createdById: readJsonInt(json, ['createdById']),
+      patientName: json['patientName']?.toString() ?? '',
+      bloodType: json['bloodType']?.toString() ?? '',
+      unitsRequired: unitsRequired,
+      completedUnits: completedUnits,
+      pendingUnits: pendingUnits,
+      hospital: json['hospital']?.toString() ?? '',
+      provinceName: json['provinceName']?.toString() ?? '',
+      municipalityName: json['municipalityName']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      deadline: DateTime.tryParse(json['deadline']?.toString() ?? ''),
+      description: json['description']?.toString() ?? '',
+      contactPhone: json['contactPhone']?.toString() ?? '',
+      urgency: json['urgency']?.toString() ?? 'LOW',
+      status: json['status']?.toString() ?? 'OPEN',
+      distanceKm: (json['approximateDistanceKm'] as num?)?.toDouble(),
+    );
+  }
 
   final int id;
+  final int createdById;
   final String patientName;
   final String bloodType;
   final int unitsRequired;
   final int completedUnits;
+  final int pendingUnits;
   final String hospital;
   final String provinceName;
   final String municipalityName;
@@ -215,6 +244,19 @@ class BloodRequestModel {
     municipalityName,
     provinceName,
   ].where((part) => part.isNotEmpty).join(', ');
+
+  int get confirmedUnits => completedUnits;
+
+  /// 0.0–1.0 based only on units confirmed by the receiver.
+  double get progress {
+    if (unitsRequired <= 0) return 0.0;
+    return (confirmedUnits.toDouble() / unitsRequired.toDouble()).clamp(0.0, 1.0);
+  }
+
+  int get progressPercent => (progress * 100).round();
+
+  String get progressLabel =>
+      '$confirmedUnits de $unitsRequired unidades recibidas';
 }
 
 class DonationCenterModel {
@@ -262,28 +304,105 @@ class DonationCenterModel {
 class DonationModel {
   const DonationModel({
     required this.id,
+    required this.donorUserId,
+    required this.donorName,
     required this.centerName,
     required this.date,
     required this.units,
+    required this.confirmedUnits,
     required this.status,
     required this.notes,
+    this.patientName,
+    this.hospital,
+    this.receiverName,
+    this.bloodRequestId,
   });
 
   factory DonationModel.fromJson(JsonMap json) => DonationModel(
     id: (json['id'] as num).toInt(),
+    donorUserId: (json['donorUserId'] as num?)?.toInt() ?? 0,
+    donorName: json['donorName']?.toString() ?? '',
     centerName: json['donationCenterName']?.toString() ?? '',
     date: DateTime.tryParse(json['donationDate']?.toString() ?? ''),
     units: (json['units'] as num?)?.toInt() ?? 0,
+    confirmedUnits: (json['confirmedUnits'] as num?)?.toInt() ?? 0,
     status: json['status']?.toString() ?? '',
     notes: json['notes']?.toString() ?? '',
+    patientName: json['patientName']?.toString(),
+    hospital: json['hospital']?.toString(),
+    receiverName: json['receiverName']?.toString(),
+    bloodRequestId: (json['bloodRequestId'] as num?)?.toInt(),
   );
 
   final int id;
+  final int donorUserId;
+  final String donorName;
   final String centerName;
   final DateTime? date;
   final int units;
+  final int confirmedUnits;
   final String status;
   final String notes;
+  final String? patientName;
+  final String? hospital;
+  final String? receiverName;
+  final int? bloodRequestId;
+
+  bool get isPendingConfirmation =>
+      status == 'REPORTED' || status == 'PARTIALLY_CONFIRMED';
+
+  String get statusLabel => switch (status) {
+    'REPORTED' => 'Pendiente de confirmación',
+    'PARTIALLY_CONFIRMED' => 'Confirmada parcialmente',
+    'CONFIRMED' || 'COMPLETED' => 'Confirmada',
+    'CANCELLED' => 'Cancelada',
+    _ => status,
+  };
+
+  String get title =>
+      (hospital != null && hospital!.isNotEmpty)
+          ? hospital!
+          : (centerName.isEmpty ? 'Donación registrada' : centerName);
+}
+
+class DonationResponseModel {
+  const DonationResponseModel({
+    required this.id,
+    required this.donorUserId,
+    required this.donorName,
+    required this.status,
+    this.donorBloodType,
+    this.message,
+    this.createdAt,
+  });
+
+  factory DonationResponseModel.fromJson(JsonMap json) => DonationResponseModel(
+    id: (json['id'] as num).toInt(),
+    donorUserId: (json['donorUserId'] as num?)?.toInt() ?? 0,
+    donorName: json['donorName']?.toString() ?? '',
+    donorBloodType: json['donorBloodType']?.toString(),
+    status: json['status']?.toString() ?? '',
+    message: json['message']?.toString(),
+    createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+  );
+
+  final int id;
+  final int donorUserId;
+  final String donorName;
+  final String? donorBloodType;
+  final String status;
+  final String? message;
+  final DateTime? createdAt;
+
+  bool get isActiveOffer => status == 'PENDING' || status == 'ACCEPTED';
+
+  String get statusLabel => switch (status) {
+    'PENDING' || 'ACCEPTED' => 'Interesado en ayudar',
+    'REJECTED' => 'No seleccionado',
+    'COMPLETED' => 'Donación reportada',
+    'CANCELLED' => 'Cancelado',
+    _ => status,
+  };
 }
 
 class DonationHistory {
@@ -346,4 +465,96 @@ class NotificationModel {
   final DateTime? createdAt;
   final String? resourceType;
   final int? resourceId;
+}
+
+class ConversationModel {
+  const ConversationModel({
+    required this.id,
+    required this.bloodRequestId,
+    required this.bloodRequestPatientName,
+    required this.bloodRequestHospital,
+    required this.otherUserId,
+    required this.otherUserName,
+    required this.unreadCount,
+    this.bloodRequestBloodType,
+    this.lastMessage,
+    this.lastMessageAt,
+  });
+
+  factory ConversationModel.fromJson(JsonMap json) => ConversationModel(
+    id: (json['id'] as num).toInt(),
+    bloodRequestId: (json['bloodRequestId'] as num?)?.toInt() ?? 0,
+    bloodRequestPatientName: json['bloodRequestPatientName']?.toString() ?? '',
+    bloodRequestHospital: json['bloodRequestHospital']?.toString() ?? '',
+    bloodRequestBloodType: json['bloodRequestBloodType']?.toString(),
+    otherUserId: (json['otherUserId'] as num?)?.toInt() ?? 0,
+    otherUserName: json['otherUserName']?.toString() ?? '',
+    lastMessage: json['lastMessage']?.toString(),
+    lastMessageAt: DateTime.tryParse(json['lastMessageAt']?.toString() ?? ''),
+    unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
+  );
+
+  final int id;
+  final int bloodRequestId;
+  final String bloodRequestPatientName;
+  final String bloodRequestHospital;
+  final String? bloodRequestBloodType;
+  final int otherUserId;
+  final String otherUserName;
+  final String? lastMessage;
+  final DateTime? lastMessageAt;
+  final int unreadCount;
+
+  String get requestLabel {
+    final bloodType = bloodRequestBloodType;
+    return [
+      'Solicitud de $bloodRequestPatientName',
+      if (bloodType != null && bloodType.isNotEmpty) bloodType,
+      bloodRequestHospital,
+    ].where((part) => part.isNotEmpty).join(' · ');
+  }
+
+  String get preview =>
+      (lastMessage == null || lastMessage!.isEmpty)
+          ? 'Conversación iniciada. Escribe el primer mensaje.'
+          : lastMessage!;
+}
+
+class ChatMessageModel {
+  const ChatMessageModel({
+    required this.id,
+    required this.conversationId,
+    required this.senderId,
+    required this.senderName,
+    required this.body,
+    required this.mine,
+    this.status = 'SENT',
+    this.createdAt,
+  });
+
+  factory ChatMessageModel.fromJson(JsonMap json) => ChatMessageModel(
+    id: (json['id'] as num).toInt(),
+    conversationId: (json['conversationId'] as num?)?.toInt() ?? 0,
+    senderId: (json['senderId'] as num?)?.toInt() ?? 0,
+    senderName: json['senderName']?.toString() ?? '',
+    body: json['body']?.toString() ?? '',
+    mine: json['mine'] == true,
+    status: json['status']?.toString() ?? 'SENT',
+    createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+  );
+
+  final int id;
+  final int conversationId;
+  final int senderId;
+  final String senderName;
+  final String body;
+  final bool mine;
+  final String status;
+  final DateTime? createdAt;
+
+  String get statusMark => switch (status) {
+    'READ' => '✓✓',
+    'DELIVERED' => '✓✓',
+    _ => '✓',
+  };
 }

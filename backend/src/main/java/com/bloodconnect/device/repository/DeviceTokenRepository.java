@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> {
 
     Optional<DeviceToken> findByToken(String token);
+
+    long countByUserId(Long userId);
 }

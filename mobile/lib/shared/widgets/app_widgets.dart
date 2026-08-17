@@ -102,11 +102,8 @@ class RequestCard extends StatelessWidget {
               Text(request.hospital),
               const SizedBox(height: 8),
               _IconText(Icons.location_on_outlined, request.location),
-              const SizedBox(height: 4),
-              _IconText(
-                Icons.water_drop_outlined,
-                '${request.completedUnits} de ${request.unitsRequired} unidades completadas',
-              ),
+              const SizedBox(height: 10),
+              RequestProgressBar(request: request),
               if (request.distanceKm != null) ...[
                 const SizedBox(height: 4),
                 _IconText(
@@ -122,6 +119,77 @@ class RequestCard extends StatelessWidget {
   }
 }
 
+class RequestProgressBar extends StatelessWidget {
+  const RequestProgressBar({
+    super.key,
+    required this.request,
+    this.height = 10,
+  });
+
+  final BloodRequestModel request;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final progress = request.progress;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: SizedBox(
+                  height: height,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(
+                        color: colors.primary.withValues(alpha: 0.16),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: progress,
+                          heightFactor: 1,
+                          child: ColoredBox(color: colors.primary),
+                        ),
+                      ),
+                      LinearProgressIndicator(
+                        value: progress,
+                        minHeight: height,
+                        color: colors.primary,
+                        backgroundColor: colors.primary.withValues(alpha: 0.16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${request.progressPercent}%',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colors.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          request.progressLabel,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class DonationCard extends StatelessWidget {
   const DonationCard({super.key, required this.donation, this.onTap});
 
@@ -130,28 +198,50 @@ class DonationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: const Icon(Icons.volunteer_activism),
-        ),
-        title: Text(
-          donation.centerName.isEmpty
-              ? 'Donación registrada'
-              : donation.centerName,
-        ),
-        subtitle: Text(
-          '${formatDate(donation.date, short: true)} · ${donation.units} ${donation.units == 1 ? 'unidad' : 'unidades'}',
-        ),
-        trailing: Icon(
-          donation.status == 'COMPLETED'
-              ? Icons.check_circle
-              : Icons.cancel_outlined,
-          color: donation.status == 'COMPLETED' ? Colors.green : Colors.grey,
-        ),
+    final child = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            donation.statusLabel,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (donation.patientName != null && donation.patientName!.isNotEmpty) ...[
+            _IconText(Icons.assignment_outlined, 'Solicitud: ${donation.patientName}'),
+            const SizedBox(height: 4),
+          ],
+          if (donation.receiverName != null && donation.receiverName!.isNotEmpty) ...[
+            _IconText(Icons.favorite_outline, 'Receptor: ${donation.receiverName}'),
+            const SizedBox(height: 4),
+          ],
+          if ((donation.hospital != null && donation.hospital!.isNotEmpty) ||
+              donation.centerName.isNotEmpty) ...[
+            _IconText(
+              Icons.local_hospital_outlined,
+              'Hospital: ${donation.hospital?.isNotEmpty == true ? donation.hospital! : donation.centerName}',
+            ),
+            const SizedBox(height: 4),
+          ],
+          _IconText(
+            Icons.event_outlined,
+            'Fecha: ${formatDate(donation.date, short: true)}',
+          ),
+          const SizedBox(height: 4),
+          _IconText(
+            Icons.water_drop_outlined,
+            'Unidades donadas: ${donation.units}',
+          ),
+        ],
       ),
+    );
+    return Card(
+      child: onTap == null
+          ? child
+          : InkWell(onTap: onTap, child: child),
     );
   }
 }
@@ -201,6 +291,47 @@ class DonationCenterCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class UnitsStepper extends StatelessWidget {
+  const UnitsStepper({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.min = 1,
+    this.max = 1,
+  });
+
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton.filledTonal(
+          onPressed: value <= min ? null : () => onChanged(value - 1),
+          icon: const Icon(Icons.remove),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            '$value',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ),
+        IconButton.filledTonal(
+          onPressed: value >= max ? null : () => onChanged(value + 1),
+          icon: const Icon(Icons.add),
+        ),
+      ],
     );
   }
 }

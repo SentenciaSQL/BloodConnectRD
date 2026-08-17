@@ -8,11 +8,14 @@ import {
   BloodRequestPayload,
   BloodType,
   CenterPayload,
+  ChatMessage,
   Compatibility,
+  Conversation,
   DashboardStatistics,
   Donation,
   DonationCenter,
   DonationHistory,
+  DonationResponse,
   Donor,
   DonorPayload,
   Municipality,
@@ -20,6 +23,7 @@ import {
   PageResponse,
   Province,
   Role,
+  UnreadCount,
   Urgency,
   User,
 } from '../models/api.models';
@@ -67,7 +71,7 @@ export class ApiService {
     return this.http.patch<Donor>(`${this.base}/donors/me/availability`, { availability });
   }
 
-  requests(filters: Record<string, string | number | boolean | null | undefined> = {}) {
+  requests(filters: Record<string, string | number | boolean | string[] | null | undefined> = {}) {
     return this.http.get<PageResponse<BloodRequest>>(`${this.base}/blood-requests`, {
       params: this.params(filters),
     });
@@ -101,6 +105,18 @@ export class ApiService {
     return this.http.get<BloodRequest>(`${this.base}/blood-requests/${id}`);
   }
 
+  requestDonations(id: number) {
+    return this.http.get<Donation[]>(`${this.base}/blood-requests/${id}/donations`);
+  }
+
+  reportDonation(requestId: number, payload: { units: number; donationDate?: string; notes?: string }) {
+    return this.http.post<Donation>(`${this.base}/blood-requests/${requestId}/donations`, payload);
+  }
+
+  confirmDonation(donationId: number, confirmedUnits: number) {
+    return this.http.patch<Donation>(`${this.base}/donations/${donationId}/confirm`, { confirmedUnits });
+  }
+
   createRequest(payload: BloodRequestPayload) {
     return this.http.post<BloodRequest>(`${this.base}/blood-requests`, payload);
   }
@@ -114,7 +130,41 @@ export class ApiService {
   }
 
   respondToRequest(id: number, message?: string) {
-    return this.http.post(`${this.base}/blood-requests/${id}/responses`, { message });
+    return this.http.post<DonationResponse>(`${this.base}/blood-requests/${id}/responses`, { message });
+  }
+
+  requestResponses(id: number) {
+    return this.http.get<DonationResponse[]>(`${this.base}/blood-requests/${id}/responses`);
+  }
+
+  openConversation(requestId: number, donorUserId: number) {
+    return this.http.post<Conversation>(`${this.base}/blood-requests/${requestId}/conversations`, {
+      donorUserId,
+    });
+  }
+
+  conversations() {
+    return this.http.get<Conversation[]>(`${this.base}/conversations`);
+  }
+
+  conversation(id: number) {
+    return this.http.get<Conversation>(`${this.base}/conversations/${id}`);
+  }
+
+  conversationMessages(id: number) {
+    return this.http.get<ChatMessage[]>(`${this.base}/conversations/${id}/messages`);
+  }
+
+  sendConversationMessage(id: number, body: string) {
+    return this.http.post<ChatMessage>(`${this.base}/conversations/${id}/messages`, { body });
+  }
+
+  unreadMessageCount() {
+    return this.http.get<UnreadCount>(`${this.base}/messages/unread-count`);
+  }
+
+  markConversationRead(id: number) {
+    return this.http.put<Conversation>(`${this.base}/conversations/${id}/read`, {});
   }
 
   centers(filters: Record<string, string | number | boolean | null | undefined> = {}) {
@@ -198,9 +248,16 @@ export class ApiService {
   private params(values: Record<string, unknown>): HttpParams {
     let params = new HttpParams();
     Object.entries(values).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params = params.set(key, String(value));
+      if (value === undefined || value === null || value === '') return;
+      if (Array.isArray(value)) {
+        value.forEach((item) => {
+          if (item !== undefined && item !== null && item !== '') {
+            params = params.append(key, String(item));
+          }
+        });
+        return;
       }
+      params = params.set(key, String(value));
     });
     return params;
   }

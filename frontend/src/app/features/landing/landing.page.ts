@@ -51,11 +51,16 @@ import {
             </p>
           </div>
         </div>
-        <div
-          class="relative min-h-[440px] bg-[url('https://images.unsplash.com/photo-1615461066159-fe208ce68c0a?auto=format&fit=crop&w=1600&q=88')] bg-cover bg-center lg:min-h-full"
-          role="img"
-          aria-label="Profesional de salud preparando una donación de sangre"
-        >
+        <div class="relative min-h-[440px] lg:min-h-full">
+          <img
+            src="/images/donation-hero.jpg"
+            alt="Profesional de salud preparando una donación de sangre"
+            width="1600"
+            height="944"
+            fetchpriority="high"
+            decoding="async"
+            class="absolute inset-0 h-full w-full object-cover"
+          />
           <div class="absolute inset-0 bg-gradient-to-r from-ink-950/45 via-transparent to-transparent"></div>
           <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950/80 to-transparent px-7 pb-8 pt-24 lg:px-10">
             <p class="font-display text-2xl font-semibold">Un gesto. Tres vidas.</p>

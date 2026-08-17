@@ -2,12 +2,12 @@ package com.bloodconnect.bloodrequest.service;
 
 import com.bloodconnect.bloodrequest.dto.BloodRequestResponse;
 import com.bloodconnect.bloodrequest.dto.CreateBloodRequest;
+import com.bloodconnect.bloodrequest.dto.DonationProgress;
 import com.bloodconnect.bloodrequest.dto.UpdateBloodRequest;
 import com.bloodconnect.bloodrequest.entity.BloodRequest;
 import com.bloodconnect.bloodrequest.repository.BloodRequestRepository;
 import com.bloodconnect.common.dto.PageResponse;
 import com.bloodconnect.common.enums.BloodType;
-import com.bloodconnect.common.enums.DonationStatus;
 import com.bloodconnect.common.enums.RequestStatus;
 import com.bloodconnect.common.enums.Role;
 import com.bloodconnect.common.enums.Urgency;
@@ -93,7 +93,7 @@ public class BloodRequestService {
             Long provinceId,
             Long municipalityId,
             Urgency urgency,
-            RequestStatus status,
+            List<RequestStatus> statuses,
             String search,
             Pageable pageable
     ) {
@@ -103,7 +103,7 @@ public class BloodRequestService {
                         provinceId,
                         municipalityId,
                         urgency == null ? List.of() : List.of(urgency),
-                        status == null ? List.of() : List.of(status),
+                        statuses == null ? List.of() : statuses,
                         null,
                         search,
                         false
@@ -213,7 +213,16 @@ public class BloodRequestService {
         Municipality municipality = findMunicipality(request.municipalityId(), province.getId());
         entity.setPatientName(request.patientName().trim());
         entity.setBloodType(request.bloodType());
+        long confirmedUnits = donationRepository.sumConfirmedUnitsByRequest(entity.getId());
+        if (request.unitsRequired() < confirmedUnits) {
+            throw new BadRequestException(
+                    "Las unidades requeridas no pueden ser menores que las ya confirmadas"
+            );
+        }
         entity.setUnitsRequired(request.unitsRequired());
+        if (confirmedUnits >= request.unitsRequired()) {
+            entity.setStatus(RequestStatus.FULFILLED);
+        }
         entity.setHospital(request.hospital().trim());
         entity.setProvince(province);
         entity.setMunicipality(municipality);
@@ -310,6 +319,10 @@ public class BloodRequestService {
             ) * 100.0) / 100.0;
         }
         User creator = request.getCreatedBy();
+        DonationProgress progress = DonationProgress.of(
+                request.getUnitsRequired(),
+                donationRepository.sumConfirmedUnitsByRequest(request.getId())
+        );
         return new BloodRequestResponse(
                 request.getId(),
                 creator.getId(),
@@ -317,7 +330,10 @@ public class BloodRequestService {
                 request.getPatientName(),
                 request.getBloodType(),
                 request.getUnitsRequired(),
-                donationRepository.sumUnitsByRequestAndStatus(request.getId(), DonationStatus.COMPLETED),
+                progress.completedUnits(),
+                progress.pendingUnits(),
+                progress.progressPercent(),
+                progress.progress(),
                 request.getHospital(),
                 request.getProvince().getId(),
                 request.getProvince().getName(),

@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /solicitudes
+Allow: /donantes
+Allow: /centros
+Allow: /como-donar
+Allow: /compatibilidad
+Allow: /preguntas-frecuentes
+Allow: /eliminacion-de-cuenta
+Allow: /assets/
+
+Disallow: /login
+Disallow: /registro
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /admin
+Disallow: /admin/
+
+Sitemap: /sitemap.xml

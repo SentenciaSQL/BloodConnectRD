@@ -164,7 +164,7 @@ class _DonatePageState extends ConsumerState<DonatePage> {
             OutlinedButton.icon(
               onPressed: () => context.push('/donaciones'),
               icon: const Icon(Icons.history),
-              label: const Text('Ver historial de donaciones'),
+              label: const Text('Mis donaciones'),
             ),
           ],
         ),

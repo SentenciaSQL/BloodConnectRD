@@ -28,6 +28,11 @@ class _BloodRequestsPageState extends ConsumerState<BloodRequestsPage> {
         title: const Text('Solicitudes de sangre'),
         actions: [
           IconButton(
+            tooltip: 'Mis solicitudes',
+            onPressed: () => context.push('/mis-solicitudes'),
+            icon: const Icon(Icons.assignment_outlined),
+          ),
+          IconButton(
             tooltip: 'Crear solicitud',
             onPressed: () => context.push('/solicitudes/crear'),
             icon: const Icon(Icons.add_circle_outline),

@@ -30,6 +30,6 @@ export class ToastService {
   private show(text: string, type: ToastMessage['type']): void {
     const id = ++this.sequence;
     this.messages.update((messages) => [...messages, { id, text, type }]);
-    window.setTimeout(() => this.dismiss(id), 4500);
+    globalThis.setTimeout(() => this.dismiss(id), 4500);
   }
 }

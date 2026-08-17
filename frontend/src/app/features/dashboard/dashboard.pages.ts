@@ -24,9 +24,11 @@ import {
   Province,
   Sex,
   Urgency,
+  requestProgressPercent,
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage, AuthService } from '../../core/services/auth.service';
+import { bloodRequestSlug } from '../../core/seo/request-slug';
 import { ToastService } from '../../core/services/toast.service';
 import {
   BadgeComponent,
@@ -81,8 +83,8 @@ function normalizePhone(value: string): string {
       <a routerLink="/dashboard/solicitudes" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
         + Crear solicitud
       </a>
-      <a routerLink="/dashboard/perfil" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
-        Actualizar mi perfil
+      <a routerLink="/dashboard/mensajes" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
+        Mensajes
       </a>
       <a routerLink="/dashboard/notificaciones" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
         Ver notificaciones
@@ -472,7 +474,15 @@ export class ProfilePage implements OnInit {
               <div>
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="text-lg font-black text-brand-700">{{ request.bloodType }}</span>
-                  <app-badge [tone]="request.status === 'OPEN' ? 'green' : 'neutral'">
+                  <app-badge
+                    [tone]="
+                      request.status === 'FULFILLED' || request.status === 'OPEN'
+                        ? 'green'
+                        : request.status === 'IN_PROGRESS'
+                          ? 'amber'
+                          : 'neutral'
+                    "
+                  >
                     {{ statusLabels[request.status] }}
                   </app-badge>
                 </div>
@@ -482,7 +492,7 @@ export class ProfilePage implements OnInit {
                 </p>
               </div>
               <div class="flex gap-2">
-                <a [routerLink]="['/solicitudes', request.id]" class="btn-secondary">Ver</a>
+                <a [routerLink]="['/solicitudes', requestSlug(request)]" class="btn-secondary">Ver</a>
                 @if (request.status === 'OPEN' || request.status === 'IN_PROGRESS') {
                   <button type="button" class="btn-secondary !text-brand-700" (click)="cancel(request)">
                     Cancelar
@@ -490,15 +500,16 @@ export class ProfilePage implements OnInit {
                 }
               </div>
             </div>
-            <div class="mt-4 h-2 overflow-hidden rounded-full bg-ink-100">
+            <div class="mt-4 h-3 overflow-hidden rounded-full bg-ink-100">
               <div
                 class="h-full rounded-full bg-brand-600"
-                [style.width.%]="(request.completedUnits / request.unitsRequired) * 100"
+                [style.width.%]="progressPercent(request)"
               ></div>
             </div>
-            <p class="mt-2 text-xs text-ink-500">
-              {{ request.completedUnits }} de {{ request.unitsRequired }} unidades completadas
-            </p>
+            <div class="mt-2 flex items-center justify-between gap-3 text-sm font-semibold text-ink-700">
+              <span>{{ request.completedUnits }} de {{ request.unitsRequired }} unidades recibidas</span>
+              <span class="text-brand-700">{{ progressPercent(request) }}%</span>
+            </div>
           </article>
         }
       </div>
@@ -606,6 +617,7 @@ export class MyRequestsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
+  readonly requestSlug = bloodRequestSlug;
   readonly bloodTypes = BLOOD_TYPES;
   readonly page = signal<PageResponse<BloodRequest> | null>(null);
   readonly provinces = signal<Province[]>([]);
@@ -734,6 +746,10 @@ export class MyRequestsPage implements OnInit {
       error: (error) => this.toast.error(apiErrorMessage(error)),
     });
   }
+
+  progressPercent(request: BloodRequest): number {
+    return requestProgressPercent(request);
+  }
 }
 
 @Component({
@@ -744,7 +760,7 @@ export class MyRequestsPage implements OnInit {
     <header>
       <p class="eyebrow">Historial</p>
       <h1 class="font-display text-4xl font-semibold text-ink-950">Mis donaciones</h1>
-      <p class="mt-2 text-ink-600">Consulta las donaciones registradas por los centros.</p>
+        <p class="mt-2 text-ink-600">Consulta las donaciones que has reportado y su estado de confirmación.</p>
     </header>
 
     @if (loading()) {
@@ -779,7 +795,7 @@ export class MyRequestsPage implements OnInit {
         <div class="mt-8">
           <app-empty-state
             title="No hay donaciones registradas"
-            message="Tu historial aparecerá cuando un centro confirme una donación."
+            message="Cuando pulses “Ya doné” en una solicitud, tu reporte aparecerá aquí."
           >
             <a routerLink="/centros" class="btn-primary">Buscar un centro</a>
           </app-empty-state>
@@ -829,7 +845,7 @@ export class MyDonationsPage implements OnInit {
             type="button"
             class="flex w-full items-start gap-4 border-b border-ink-100 p-5 text-left last:border-0 hover:bg-ink-50"
             [class.bg-brand-50]="!notification.read"
-            (click)="markRead(notification)"
+            (click)="open(notification)"
           >
             <span
               class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
@@ -861,6 +877,7 @@ export class MyDonationsPage implements OnInit {
 export class NotificationsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
   readonly page = signal<PageResponse<Notification> | null>(null);
   readonly loading = signal(true);
 
@@ -878,6 +895,17 @@ export class NotificationsPage implements OnInit {
       },
       complete: () => this.loading.set(false),
     });
+  }
+
+  open(notification: Notification): void {
+    this.markRead(notification);
+    if (notification.resourceType === 'CONVERSATION' && notification.resourceId) {
+      void this.router.navigate(['/dashboard/mensajes', notification.resourceId]);
+      return;
+    }
+    if (notification.resourceType === 'BLOOD_REQUEST' && notification.resourceId) {
+      void this.router.navigate(['/solicitudes', notification.resourceId]);
+    }
   }
 
   markRead(notification: Notification): void {

@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Observable, catchError, finalize, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -12,6 +13,7 @@ const USER_KEY = 'bloodconnect_user';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private refreshInFlight?: Observable<AuthResponse>;
 
   readonly user = signal<User | null>(this.readUser());
@@ -20,11 +22,11 @@ export class AuthService {
   readonly isDonor = computed(() => this.user()?.role === 'DONOR');
 
   get accessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    return this.readStorage(ACCESS_TOKEN_KEY);
   }
 
   get refreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    return this.readStorage(REFRESH_TOKEN_KEY);
   }
 
   login(credentials: { email: string; password: string }): Observable<AuthResponse> {
@@ -90,31 +92,46 @@ export class AuthService {
   }
 
   clearSession(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    this.removeStorage(ACCESS_TOKEN_KEY);
+    this.removeStorage(REFRESH_TOKEN_KEY);
+    this.removeStorage(USER_KEY);
     this.user.set(null);
   }
 
   private persistSession(response: AuthResponse): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    this.writeStorage(ACCESS_TOKEN_KEY, response.accessToken);
+    this.writeStorage(REFRESH_TOKEN_KEY, response.refreshToken);
     this.persistUser(response.user);
   }
 
   private persistUser(user: User): void {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this.writeStorage(USER_KEY, JSON.stringify(user));
     this.user.set(user);
   }
 
   private readUser(): User | null {
     try {
-      const value = localStorage.getItem(USER_KEY);
+      const value = this.readStorage(USER_KEY);
       return value ? (JSON.parse(value) as User) : null;
     } catch {
-      localStorage.removeItem(USER_KEY);
+      this.removeStorage(USER_KEY);
       return null;
     }
+  }
+
+  private readStorage(key: string): string | null {
+    if (!this.isBrowser) return null;
+    return localStorage.getItem(key);
+  }
+
+  private writeStorage(key: string, value: string): void {
+    if (!this.isBrowser) return;
+    localStorage.setItem(key, value);
+  }
+
+  private removeStorage(key: string): void {
+    if (!this.isBrowser) return;
+    localStorage.removeItem(key);
   }
 }
 

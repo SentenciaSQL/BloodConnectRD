@@ -57,11 +57,14 @@ public class Donation {
     @Column(nullable = false)
     private int units;
 
+    @Column(name = "confirmed_units", nullable = false)
+    private int confirmedUnits;
+
     @Column(length = 500)
     private String notes;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 32)
     private DonationStatus status;
 
     @Column(name = "created_at", nullable = false)
@@ -75,6 +78,9 @@ public class Donation {
         Instant now = Instant.now();
         createdAt = now;
         updatedAt = now;
+        if (status == null) {
+            status = DonationStatus.REPORTED;
+        }
     }
 
     @PreUpdate

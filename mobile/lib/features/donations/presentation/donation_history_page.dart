@@ -13,7 +13,7 @@ class DonationHistoryPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(donationHistoryProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Historial de donaciones')),
+      appBar: AppBar(title: const Text('Mis donaciones')),
       body: history.when(
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(
@@ -33,7 +33,7 @@ class DonationHistoryPage extends ConsumerWidget {
             return const EmptyState(
               title: 'Aún no hay donaciones',
               message:
-                  'Cuando completes una donación aparecerá en este historial.',
+                  'Cuando pulses “Ya doné” en una solicitud, tu reporte aparecerá aquí.',
               icon: Icons.history,
             );
           }

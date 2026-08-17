@@ -3,9 +3,7 @@ package com.bloodconnect.statistics.service;
 import com.bloodconnect.bloodrequest.entity.BloodRequest;
 import com.bloodconnect.bloodrequest.repository.BloodRequestRepository;
 import com.bloodconnect.common.enums.AvailabilityStatus;
-import com.bloodconnect.common.enums.DonationStatus;
 import com.bloodconnect.common.enums.RequestStatus;
-import com.bloodconnect.donation.entity.Donation;
 import com.bloodconnect.donation.repository.DonationRepository;
 import com.bloodconnect.donor.entity.Donor;
 import com.bloodconnect.donor.repository.DonorRepository;
@@ -54,7 +52,7 @@ public class StatisticsService {
                 request -> request.getMunicipality().getName()
         );
         Map<String, Long> byMonth = donations.stream()
-                .filter(donation -> donation.getStatus() == DonationStatus.COMPLETED)
+                .filter(donation -> donation.getConfirmedUnits() > 0)
                 .collect(Collectors.groupingBy(
                         donation -> donation.getDonationDate().format(MONTH_FORMAT),
                         TreeMap::new,
@@ -67,7 +65,7 @@ public class StatisticsService {
                 donorRepository.countByAvailability(AvailabilityStatus.AVAILABLE),
                 bloodRequestRepository.countByStatus(RequestStatus.OPEN),
                 bloodRequestRepository.countByStatus(RequestStatus.FULFILLED),
-                donations.stream().filter(d -> d.getStatus() == DonationStatus.COMPLETED).count(),
+                donations.stream().filter(d -> d.getConfirmedUnits() > 0).count(),
                 new LinkedHashMap<>(bloodTypes),
                 byProvince,
                 byMunicipality,

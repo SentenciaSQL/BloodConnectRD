@@ -122,6 +122,8 @@ npm start
 
 ```bash
 cd mobile
+# Configura MAPS_API_KEY en android/local.properties (Android)
+# y MAPS_API_KEY_IOS en ios/Flutter/Secrets.xcconfig (iOS). Ver mobile/README.md.
 flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080 --dart-define=ENV=development
 ```
@@ -159,11 +161,21 @@ GET  /api/blood-requests
 GET  /api/blood-requests/urgent
 GET  /api/blood-requests/nearby
 POST /api/blood-requests/{id}/responses
+GET  /api/blood-requests/{id}/donations
+POST /api/blood-requests/{id}/donations
+PATCH /api/donations/{id}/confirm
 
 GET  /api/donation-centers
 GET  /api/donation-centers/nearby
 
 GET  /api/notifications
+POST /api/blood-requests/{id}/conversations
+GET  /api/conversations
+GET  /api/conversations/{id}
+GET  /api/conversations/{id}/messages
+POST /api/conversations/{id}/messages
+GET  /api/messages/unread-count
+PUT  /api/conversations/{id}/read
 POST /api/devices
 
 GET  /api/admin/statistics/dashboard
@@ -203,6 +215,7 @@ La elegibilidad para donar debe ser determinada por profesionales de la salud.
 ## Privacidad
 
 - Dirección exacta y coordenadas del donante no se exponen públicamente
+- El chat interno no muestra teléfono, correo ni otros datos privados del donante
 - No se almacenan diagnósticos ni expedientes médicos
 - No se solicita cédula en el MVP
 - No se vende ni se pone precio a la sangre
