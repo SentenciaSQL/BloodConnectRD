@@ -29,7 +29,7 @@ class BloodRequestFilters extends Equatable {
     if (provinceId != null) 'provinceId': provinceId,
     if (municipalityId != null) 'municipalityId': municipalityId,
     if (urgency != null) 'urgency': urgency,
-    'status': 'OPEN',
+    'status': ['OPEN', 'IN_PROGRESS'],
     'size': 50,
     'sort': sort,
     'direction': direction,
@@ -231,3 +231,14 @@ final requestDonationsProvider = FutureProvider.family<List<DonationModel>, int>
     }
   },
 );
+
+void invalidateBloodRequestCaches(Ref ref, {int? requestId}) {
+  ref.invalidate(bloodRequestsProvider);
+  ref.invalidate(urgentRequestsProvider);
+  ref.invalidate(compatibleRequestsProvider);
+  ref.invalidate(myRequestsProvider);
+  if (requestId != null) {
+    ref.invalidate(bloodRequestDetailProvider(requestId));
+    ref.invalidate(requestDonationsProvider(requestId));
+  }
+}

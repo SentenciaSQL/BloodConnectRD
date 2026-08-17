@@ -53,7 +53,7 @@ public class BloodRequestController {
             @RequestParam(required = false) Long provinceId,
             @RequestParam(required = false) Long municipalityId,
             @RequestParam(required = false) Urgency urgency,
-            @RequestParam(required = false) RequestStatus status,
+            @RequestParam(required = false) List<RequestStatus> status,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -65,7 +65,7 @@ public class BloodRequestController {
                 provinceId,
                 municipalityId,
                 urgency,
-                status,
+                status == null ? List.of() : status,
                 search,
                 PageableUtils.create(page, size, sort, direction, SORTS, "createdAt")
         ));

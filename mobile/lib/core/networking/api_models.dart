@@ -10,6 +10,18 @@ List<JsonMap> pageContent(Object? value) {
   return asJsonList(json['content']);
 }
 
+int readJsonInt(JsonMap json, List<String> keys, [int fallback = 0]) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = num.tryParse(value);
+      if (parsed != null) return parsed.toInt();
+    }
+  }
+  return fallback;
+}
+
 class AppUser {
   const AppUser({
     required this.id,
@@ -167,7 +179,6 @@ class BloodRequestModel {
     required this.unitsRequired,
     required this.completedUnits,
     required this.pendingUnits,
-    required this.progressPercent,
     required this.hospital,
     required this.provinceName,
     required this.municipalityName,
@@ -181,27 +192,23 @@ class BloodRequestModel {
   });
 
   factory BloodRequestModel.fromJson(JsonMap json) {
-    final unitsRequired = (json['unitsRequired'] as num?)?.toInt() ?? 0;
-    final completedUnits = (json['completedUnits'] as num?)?.toInt() ?? 0;
+    final unitsRequired = readJsonInt(json, ['unitsRequired', 'requiredUnits']);
+    final completedUnits = readJsonInt(json, [
+      'completedUnits',
+      'confirmedUnits',
+      'receivedUnits',
+      'unitsReceived',
+    ]);
     final computedPending = unitsRequired - completedUnits;
-    final pendingUnits =
-        (json['pendingUnits'] as num?)?.toInt() ??
-        (computedPending < 0 ? 0 : computedPending);
-    final computedPercent = unitsRequired == 0
-        ? 0
-        : ((completedUnits * 100) / unitsRequired).round();
-    final progressPercent =
-        (json['progressPercent'] as num?)?.toInt() ??
-        (computedPercent < 0 ? 0 : (computedPercent > 100 ? 100 : computedPercent));
+    final pendingUnits = readJsonInt(json, ['pendingUnits'], computedPending < 0 ? 0 : computedPending);
     return BloodRequestModel(
       id: (json['id'] as num).toInt(),
-      createdById: (json['createdById'] as num?)?.toInt() ?? 0,
+      createdById: readJsonInt(json, ['createdById']),
       patientName: json['patientName']?.toString() ?? '',
       bloodType: json['bloodType']?.toString() ?? '',
       unitsRequired: unitsRequired,
       completedUnits: completedUnits,
       pendingUnits: pendingUnits,
-      progressPercent: progressPercent,
       hospital: json['hospital']?.toString() ?? '',
       provinceName: json['provinceName']?.toString() ?? '',
       municipalityName: json['municipalityName']?.toString() ?? '',
@@ -222,7 +229,6 @@ class BloodRequestModel {
   final int unitsRequired;
   final int completedUnits;
   final int pendingUnits;
-  final int progressPercent;
   final String hospital;
   final String provinceName;
   final String municipalityName;
@@ -239,8 +245,18 @@ class BloodRequestModel {
     provinceName,
   ].where((part) => part.isNotEmpty).join(', ');
 
+  int get confirmedUnits => completedUnits;
+
+  /// 0.0–1.0 based only on units confirmed by the receiver.
+  double get progress {
+    if (unitsRequired <= 0) return 0.0;
+    return (confirmedUnits.toDouble() / unitsRequired.toDouble()).clamp(0.0, 1.0);
+  }
+
+  int get progressPercent => (progress * 100).round();
+
   String get progressLabel =>
-      '$completedUnits de $unitsRequired unidades recibidas';
+      '$confirmedUnits de $unitsRequired unidades recibidas';
 }
 
 class DonationCenterModel {

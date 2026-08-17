@@ -67,7 +67,7 @@ export class ApiService {
     return this.http.patch<Donor>(`${this.base}/donors/me/availability`, { availability });
   }
 
-  requests(filters: Record<string, string | number | boolean | null | undefined> = {}) {
+  requests(filters: Record<string, string | number | boolean | string[] | null | undefined> = {}) {
     return this.http.get<PageResponse<BloodRequest>>(`${this.base}/blood-requests`, {
       params: this.params(filters),
     });
@@ -210,9 +210,16 @@ export class ApiService {
   private params(values: Record<string, unknown>): HttpParams {
     let params = new HttpParams();
     Object.entries(values).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params = params.set(key, String(value));
+      if (value === undefined || value === null || value === '') return;
+      if (Array.isArray(value)) {
+        value.forEach((item) => {
+          if (item !== undefined && item !== null && item !== '') {
+            params = params.append(key, String(item));
+          }
+        });
+        return;
       }
+      params = params.set(key, String(value));
     });
     return params;
   }

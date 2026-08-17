@@ -70,10 +70,8 @@ class _BloodRequestDetailPageState
             donationDate: draft.date,
             notes: draft.notes,
           );
-      ref.invalidate(bloodRequestDetailProvider(widget.requestId));
-      ref.invalidate(requestDonationsProvider(widget.requestId));
+      invalidateBloodRequestCaches(ref, requestId: widget.requestId);
       ref.invalidate(donationHistoryProvider);
-      ref.invalidate(myRequestsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -110,10 +108,8 @@ class _BloodRequestDetailPageState
       await ref
           .read(bloodRequestRepositoryProvider)
           .confirmDonation(donation.id, confirmedUnits: units);
-      ref.invalidate(bloodRequestDetailProvider(widget.requestId));
-      ref.invalidate(requestDonationsProvider(widget.requestId));
+      invalidateBloodRequestCaches(ref, requestId: widget.requestId);
       ref.invalidate(donationHistoryProvider);
-      ref.invalidate(myRequestsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -193,7 +189,12 @@ class _BloodRequestDetailPageState
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 16),
-              _ProgressCard(request: item),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: RequestProgressBar(request: item, height: 12),
+                ),
+              ),
               const SizedBox(height: 12),
               _DetailRow(
                 icon: Icons.person_outline,
@@ -296,59 +297,6 @@ class _BloodRequestDetailPageState
               : null,
         );
       },
-    );
-  }
-}
-
-class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.request});
-
-  final BloodRequestModel request;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    request.progressLabel,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${request.progressPercent}%',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: request.unitsRequired == 0
-                    ? 0
-                    : request.progressPercent / 100,
-                minHeight: 12,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text('Unidades requeridas: ${request.unitsRequired}'),
-            Text('Unidades recibidas: ${request.completedUnits}'),
-            Text('Unidades pendientes: ${request.pendingUnits}'),
-          ],
-        ),
-      ),
     );
   }
 }

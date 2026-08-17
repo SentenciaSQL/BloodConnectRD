@@ -99,6 +99,7 @@ export interface BloodRequest {
   completedUnits: number;
   pendingUnits: number;
   progressPercent: number;
+  progress?: number;
   hospital: string;
   provinceId: number;
   provinceName: string;
@@ -249,11 +250,14 @@ export function requestPendingUnits(request: Pick<BloodRequest, 'unitsRequired' 
 }
 
 export function requestProgressPercent(
-  request: Pick<BloodRequest, 'unitsRequired' | 'completedUnits' | 'progressPercent'>,
+  request: Pick<BloodRequest, 'unitsRequired' | 'completedUnits' | 'progressPercent' | 'progress'>,
 ): number {
-  if (request.progressPercent != null) return request.progressPercent;
   if (!request.unitsRequired) return 0;
-  return Math.min(100, Math.round((request.completedUnits / request.unitsRequired) * 100));
+  const ratio =
+    request.progress != null
+      ? request.progress
+      : request.completedUnits / request.unitsRequired;
+  return Math.min(100, Math.max(0, Math.round(ratio * 100)));
 }
 
 export function donationStatusLabel(status: string): string {
