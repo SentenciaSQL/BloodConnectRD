@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/domain/auth_controller.dart';
 import '../../blood_requests/data/blood_request_repository.dart';
 import '../../donors/data/donor_repository.dart';
+import '../../messages/data/conversation_repository.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -71,7 +72,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           IconButton(
             tooltip: 'Mensajes',
             onPressed: () => context.push('/mensajes'),
-            icon: const Icon(Icons.chat_outlined),
+            icon: Badge(
+              isLabelVisible:
+                  (ref.watch(unreadMessageCountProvider).valueOrNull ?? 0) > 0,
+              label: Text(
+                '${ref.watch(unreadMessageCountProvider).valueOrNull ?? 0}',
+              ),
+              child: const Icon(Icons.chat_outlined),
+            ),
           ),
           IconButton(
             tooltip: 'Notificaciones',
@@ -190,6 +198,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   icon: Icons.local_hospital_outlined,
                   label: 'Ver centros',
                   onTap: () => context.go('/centros'),
+                ),
+                _QuickAction(
+                  icon: Icons.volunteer_activism_outlined,
+                  label: 'Donar',
+                  onTap: () => context.push('/donar'),
                 ),
                 _QuickAction(
                   icon: Icons.history,

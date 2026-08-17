@@ -8,6 +8,7 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/domain/auth_controller.dart';
 import '../../donations/data/donation_repository.dart';
 import '../../donors/data/donor_repository.dart';
+import '../../messages/data/conversation_repository.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -53,7 +54,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           IconButton(
             tooltip: 'Mensajes',
             onPressed: () => context.push('/mensajes'),
-            icon: const Icon(Icons.chat_outlined),
+            icon: Badge(
+              isLabelVisible:
+                  (ref.watch(unreadMessageCountProvider).valueOrNull ?? 0) > 0,
+              label: Text(
+                '${ref.watch(unreadMessageCountProvider).valueOrNull ?? 0}',
+              ),
+              child: const Icon(Icons.chat_outlined),
+            ),
           ),
           IconButton(
             tooltip: 'Notificaciones',

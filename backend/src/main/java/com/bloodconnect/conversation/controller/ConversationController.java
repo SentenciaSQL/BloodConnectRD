@@ -4,6 +4,7 @@ import com.bloodconnect.conversation.dto.ChatMessageDto;
 import com.bloodconnect.conversation.dto.ConversationDto;
 import com.bloodconnect.conversation.dto.OpenConversationRequest;
 import com.bloodconnect.conversation.dto.SendMessageRequest;
+import com.bloodconnect.conversation.dto.UnreadCountResponse;
 import com.bloodconnect.conversation.service.ConversationService;
 import com.bloodconnect.security.UserPrincipal;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -67,8 +69,23 @@ public class ConversationController {
         return ResponseEntity.ok(conversationService.send(id, principal, request));
     }
 
-    @PostMapping("/conversations/{id}/read")
+    @GetMapping("/messages/unread-count")
+    public ResponseEntity<UnreadCountResponse> unreadCount(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(conversationService.unreadCount(principal));
+    }
+
+    @PutMapping("/conversations/{id}/read")
     public ResponseEntity<ConversationDto> markRead(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ResponseEntity.ok(conversationService.markRead(id, principal));
+    }
+
+    @PostMapping("/conversations/{id}/read")
+    public ResponseEntity<ConversationDto> markReadPost(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal
     ) {

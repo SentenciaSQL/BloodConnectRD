@@ -17,6 +17,7 @@ import { ChatMessage, Conversation } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { UnreadMessagesStore } from '../../core/services/unread-messages.store';
 import {
   EmptyStateComponent,
   LoadingSpinnerComponent,
@@ -45,9 +46,13 @@ import {
             [routerLink]="['/dashboard/mensajes', conversation.id]"
             class="flex w-full items-start gap-4 border-b border-ink-100 p-5 text-left last:border-0 hover:bg-ink-50"
             [class.bg-brand-50]="conversation.unreadCount > 0"
+            [class.font-semibold]="conversation.unreadCount > 0"
           >
-            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-100 font-bold text-brand-800">
+            <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-100 font-bold text-brand-800">
               {{ initials(conversation.otherUserName) }}
+              @if (conversation.unreadCount > 0) {
+                <span class="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-brand-600"></span>
+              }
             </span>
             <span class="min-w-0 flex-1">
               <span class="flex flex-wrap items-center justify-between gap-2">
@@ -65,14 +70,20 @@ import {
                 }
                 · {{ conversation.bloodRequestHospital }}
               </span>
-              <span class="mt-1 block truncate text-sm text-ink-600">
+              <span
+                class="mt-1 block truncate text-sm"
+                [class.text-ink-950]="conversation.unreadCount > 0"
+                [class.text-ink-600]="conversation.unreadCount === 0"
+              >
                 {{ conversation.lastMessage || 'Conversación iniciada. Escribe el primer mensaje.' }}
               </span>
             </span>
-            @if (conversation.unreadCount > 0) {
+            @if (conversation.unreadCount > 1) {
               <span class="mt-1 rounded-full bg-brand-600 px-2.5 py-1 text-xs font-bold text-white">
                 {{ conversation.unreadCount }}
               </span>
+            } @else if (conversation.unreadCount === 1) {
+              <span class="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-600"></span>
             }
           </a>
         }
@@ -90,6 +101,7 @@ import {
 export class ConversationsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
+  private readonly unread = inject(UnreadMessagesStore);
   private readonly destroyRef = inject(DestroyRef);
   readonly conversations = signal<Conversation[]>([]);
   readonly loading = signal(true);
@@ -113,7 +125,10 @@ export class ConversationsPage implements OnInit {
   private load(showSpinner = true): void {
     if (showSpinner) this.loading.set(true);
     this.api.conversations().subscribe({
-      next: (conversations) => this.conversations.set(conversations),
+      next: (conversations) => {
+        this.conversations.set(conversations);
+        this.unread.refresh();
+      },
       error: () => {
         this.loading.set(false);
         if (showSpinner) this.toast.error('No pudimos cargar tus conversaciones.');
@@ -169,7 +184,12 @@ export class ConversationsPage implements OnInit {
               >
                 <p class="text-xs font-semibold opacity-80">{{ message.mine ? 'Tú' : message.senderName }}</p>
                 <p class="mt-1 whitespace-pre-line text-sm leading-relaxed">{{ message.body }}</p>
-                <p class="mt-2 text-[11px] opacity-70">{{ message.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+                <p class="mt-2 flex items-center justify-end gap-1 text-[11px] opacity-70">
+                  <span>{{ message.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                  @if (message.mine) {
+                    <span [class.font-bold]="message.status === 'READ'">{{ statusMark(message.status) }}</span>
+                  }
+                </p>
               </article>
             }
           } @else {
@@ -206,6 +226,7 @@ export class ConversationChatPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly unread = inject(UnreadMessagesStore);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly thread = viewChild<ElementRef<HTMLElement>>('thread');
@@ -270,8 +291,10 @@ export class ConversationChatPage implements OnInit {
         const previousCount = this.messages().length;
         this.messages.set(messages);
         this.loading.set(false);
-        this.api.markConversationRead(id).subscribe();
         if (showSpinner || messages.length !== previousCount) {
+          this.api.markConversationRead(id).subscribe({
+            next: () => this.unread.refresh(),
+          });
           this.scrollToBottom();
         }
       },
@@ -284,5 +307,11 @@ export class ConversationChatPage implements OnInit {
       const element = this.thread()?.nativeElement;
       if (element) element.scrollTop = element.scrollHeight;
     });
+  }
+
+  statusMark(status?: string): string {
+    if (status === 'READ') return '✓✓';
+    if (status === 'DELIVERED') return '✓✓';
+    return '✓';
   }
 }

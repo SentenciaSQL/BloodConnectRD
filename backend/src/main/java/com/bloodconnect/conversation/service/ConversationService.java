@@ -2,12 +2,14 @@ package com.bloodconnect.conversation.service;
 
 import com.bloodconnect.bloodrequest.entity.BloodRequest;
 import com.bloodconnect.bloodrequest.service.BloodRequestService;
+import com.bloodconnect.common.enums.MessageStatus;
 import com.bloodconnect.common.enums.NotificationType;
 import com.bloodconnect.common.enums.Role;
 import com.bloodconnect.conversation.dto.ChatMessageDto;
 import com.bloodconnect.conversation.dto.ConversationDto;
 import com.bloodconnect.conversation.dto.OpenConversationRequest;
 import com.bloodconnect.conversation.dto.SendMessageRequest;
+import com.bloodconnect.conversation.dto.UnreadCountResponse;
 import com.bloodconnect.conversation.entity.Conversation;
 import com.bloodconnect.conversation.entity.ConversationMessage;
 import com.bloodconnect.conversation.repository.ConversationMessageRepository;
@@ -80,9 +82,16 @@ public class ConversationService {
         return toDto(requireParticipant(id, principal), principal.getId());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ChatMessageDto> messages(Long id, UserPrincipal principal) {
         requireParticipant(id, principal);
+        messageRepository.markIncomingDelivered(
+                id,
+                principal.getId(),
+                Instant.now(),
+                MessageStatus.SENT,
+                MessageStatus.DELIVERED
+        );
         return messageRepository.findThread(id).stream()
                 .map(message -> toMessageDto(message, principal.getId()))
                 .toList();
@@ -98,6 +107,7 @@ public class ConversationService {
                 .conversation(conversation)
                 .sender(sender)
                 .body(body)
+                .status(MessageStatus.SENT)
                 .build());
         conversation.setLastMessageBody(body);
         conversation.setLastMessageAt(message.getCreatedAt());
@@ -126,12 +136,20 @@ public class ConversationService {
     public ConversationDto markRead(Long id, UserPrincipal principal) {
         Conversation conversation = requireParticipant(id, principal);
         Instant now = Instant.now();
+        messageRepository.markIncomingRead(id, principal.getId(), now, MessageStatus.READ);
         if (conversation.getOwner().getId().equals(principal.getId())) {
             conversation.setOwnerLastReadAt(now);
-        } else {
+        } else if (conversation.getDonor().getId().equals(principal.getId())) {
             conversation.setDonorLastReadAt(now);
         }
         return toDto(conversationRepository.save(conversation), principal.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public UnreadCountResponse unreadCount(UserPrincipal principal) {
+        return new UnreadCountResponse(
+                messageRepository.countUnreadForUser(principal.getId(), MessageStatus.READ)
+        );
     }
 
     private Conversation createConversation(BloodRequest bloodRequest, User owner, User donor) {
@@ -185,16 +203,11 @@ public class ConversationService {
         User other = conversation.getOwner().getId().equals(currentUserId)
                 ? conversation.getDonor()
                 : conversation.getOwner();
-        Instant lastRead = conversation.getOwner().getId().equals(currentUserId)
-                ? conversation.getOwnerLastReadAt()
-                : conversation.getDonorLastReadAt();
-        long unread = lastRead == null
-                ? messageRepository.countByConversationIdAndSenderIdNot(conversation.getId(), currentUserId)
-                : messageRepository.countByConversationIdAndSenderIdNotAndCreatedAtAfter(
-                        conversation.getId(),
-                        currentUserId,
-                        lastRead
-                );
+        long unread = messageRepository.countByConversationIdAndSenderIdNotAndStatusNot(
+                conversation.getId(),
+                currentUserId,
+                MessageStatus.READ
+        );
         BloodRequest request = conversation.getBloodRequest();
         return new ConversationDto(
                 conversation.getId(),
@@ -223,6 +236,9 @@ public class ConversationService {
                 fullName(sender),
                 message.getBody(),
                 sender.getId().equals(currentUserId),
+                message.getStatus() == null ? MessageStatus.SENT : message.getStatus(),
+                message.getDeliveredAt(),
+                message.getReadAt(),
                 message.getCreatedAt()
         );
     }

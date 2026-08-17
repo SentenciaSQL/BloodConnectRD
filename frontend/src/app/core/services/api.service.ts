@@ -23,6 +23,7 @@ import {
   PageResponse,
   Province,
   Role,
+  UnreadCount,
   Urgency,
   User,
 } from '../models/api.models';
@@ -158,8 +159,12 @@ export class ApiService {
     return this.http.post<ChatMessage>(`${this.base}/conversations/${id}/messages`, { body });
   }
 
+  unreadMessageCount() {
+    return this.http.get<UnreadCount>(`${this.base}/messages/unread-count`);
+  }
+
   markConversationRead(id: number) {
-    return this.http.post<Conversation>(`${this.base}/conversations/${id}/read`, {});
+    return this.http.put<Conversation>(`${this.base}/conversations/${id}/read`, {});
   }
 
   centers(filters: Record<string, string | number | boolean | null | undefined> = {}) {

@@ -51,6 +51,7 @@ mvn clean package -DskipTests
 | V12 | seed desarrollo |
 | V13 | confirmación de donaciones (unidades reportadas/confirmadas) |
 | V14 | conversaciones y mensajes privados asociados a solicitudes |
+| V15 | estados SENT/DELIVERED/READ de mensajes del chat |
 
 No modificar migraciones ya aplicadas; crear una nueva si el esquema cambia.
 

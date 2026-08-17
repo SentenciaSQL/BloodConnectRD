@@ -43,12 +43,33 @@ class ConversationsPage extends ConsumerWidget {
                 final item = items[index];
                 return ListTile(
                   onTap: () => context.push('/mensajes/${item.id}'),
-                  leading: CircleAvatar(
-                    child: Text(
-                      item.otherUserName.isEmpty
-                          ? '?'
-                          : item.otherUserName[0].toUpperCase(),
-                    ),
+                  tileColor: item.unreadCount > 0
+                      ? Theme.of(context).colorScheme.primaryContainer
+                          .withValues(alpha: 0.35)
+                      : null,
+                  leading: Stack(
+                    children: [
+                      CircleAvatar(
+                        child: Text(
+                          item.otherUserName.isEmpty
+                              ? '?'
+                              : item.otherUserName[0].toUpperCase(),
+                        ),
+                      ),
+                      if (item.unreadCount > 0)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   title: Text(
                     item.otherUserName,
@@ -72,7 +93,7 @@ class ConversationsPage extends ConsumerWidget {
                         formatDateTime(item.lastMessageAt),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-                      if (item.unreadCount > 0) ...[
+                      if (item.unreadCount > 1) ...[
                         const SizedBox(height: 6),
                         CircleAvatar(
                           radius: 11,
@@ -87,6 +108,13 @@ class ConversationsPage extends ConsumerWidget {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
+                        ),
+                      ] else if (item.unreadCount == 1) ...[
+                        const SizedBox(height: 8),
+                        Icon(
+                          Icons.circle,
+                          size: 10,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ],
                     ],
@@ -141,6 +169,7 @@ class _ConversationChatPageState extends ConsumerState<ConversationChatPage> {
           .markRead(widget.conversationId);
       ref.invalidate(conversationsProvider);
       ref.invalidate(conversationProvider(widget.conversationId));
+      ref.invalidate(unreadMessageCountProvider);
     } catch (_) {
       // El historial sigue disponible aunque no se actualice el estado de lectura.
     }
@@ -305,11 +334,16 @@ class _ChatBubble extends StatelessWidget {
               if (message.createdAt != null) ...[
                 const SizedBox(height: 6),
                 Text(
-                  formatDateTime(message.createdAt),
+                  mine
+                      ? '${formatDateTime(message.createdAt)}  ${message.statusMark}'
+                      : formatDateTime(message.createdAt),
                   style: TextStyle(
                     color: (mine ? colors.onPrimary : colors.onSurface)
-                        .withValues(alpha: 0.72),
+                        .withValues(alpha: message.status == 'READ' ? 1 : 0.72),
                     fontSize: 11,
+                    fontWeight: message.status == 'READ'
+                        ? FontWeight.w700
+                        : FontWeight.w400,
                   ),
                 ),
               ],

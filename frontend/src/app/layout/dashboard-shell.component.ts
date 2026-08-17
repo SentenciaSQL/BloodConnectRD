@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../core/services/auth.service';
+import { UnreadMessagesStore } from '../core/services/unread-messages.store';
 
 @Component({
   selector: 'app-dashboard-shell',
@@ -19,6 +20,20 @@ import { AuthService } from '../core/services/auth.service';
           ☰
         </button>
         <a routerLink="/" class="font-display text-xl font-semibold">BloodConnect RD</a>
+        <a
+          routerLink="/dashboard/mensajes"
+          class="relative ml-auto rounded-lg p-2 text-ink-700"
+          aria-label="Mensajes"
+        >
+          <span aria-hidden="true">✉</span>
+          @if (unread.count() > 0) {
+            <span
+              class="absolute right-0 top-0 grid min-w-5 place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white"
+            >
+              {{ unread.count() }}
+            </span>
+          }
+        </a>
       </header>
 
       @if (sidebarOpen()) {
@@ -64,7 +79,12 @@ import { AuthService } from '../core/services/auth.service';
               class="flex items-center gap-3 rounded-lg px-3 py-3 text-ink-300 hover:bg-ink-900 hover:text-white"
             >
               <span class="w-5 text-center" aria-hidden="true">{{ link.icon }}</span>
-              {{ link.label }}
+              <span class="flex-1">{{ link.label }}</span>
+              @if (link.path === '/dashboard/mensajes' && unread.count() > 0) {
+                <span class="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">
+                  {{ unread.count() }}
+                </span>
+              }
             </a>
           }
         </nav>
@@ -91,8 +111,9 @@ import { AuthService } from '../core/services/auth.service';
     </div>
   `,
 })
-export class DashboardShellComponent {
+export class DashboardShellComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly unread = inject(UnreadMessagesStore);
   private readonly router = inject(Router);
   readonly sidebarOpen = signal(false);
   readonly links = [
@@ -103,6 +124,10 @@ export class DashboardShellComponent {
     { path: '/dashboard/mensajes', label: 'Mensajes', icon: '✉', exact: false },
     { path: '/dashboard/notificaciones', label: 'Notificaciones', icon: '●', exact: false },
   ];
+
+  ngOnInit(): void {
+    this.unread.start();
+  }
 
   logout(): void {
     this.auth.logout().subscribe(() => void this.router.navigate(['/']));

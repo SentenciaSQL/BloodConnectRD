@@ -228,7 +228,14 @@ export interface ChatMessage {
   senderName: string;
   body: string;
   mine: boolean;
+  status?: 'SENT' | 'DELIVERED' | 'READ' | string;
+  deliveredAt?: string | null;
+  readAt?: string | null;
   createdAt: string;
+}
+
+export interface UnreadCount {
+  unreadCount: number;
 }
 
 export interface Compatibility {
