@@ -136,9 +136,9 @@ class _BloodRequestDetailPageState
     final donations = ref.watch(requestDonationsProvider(widget.requestId));
     final user = ref.watch(authControllerProvider).user;
     return request.when(
-      loading: () => const Scaffold(
-        appBar: AppBar(title: Text('Detalle de solicitud')),
-        body: LoadingView(),
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Detalle de solicitud')),
+        body: const LoadingView(),
       ),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: const Text('Detalle de solicitud')),
