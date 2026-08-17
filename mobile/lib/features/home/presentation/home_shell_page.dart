@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/messages/data/conversation_repository.dart';
+import '../../messages/data/conversation_repository.dart';
 
 class HomeShellPage extends ConsumerWidget {
   const HomeShellPage({super.key, required this.navigationShell});
