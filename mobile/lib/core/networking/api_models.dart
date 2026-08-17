@@ -466,3 +466,86 @@ class NotificationModel {
   final String? resourceType;
   final int? resourceId;
 }
+
+class ConversationModel {
+  const ConversationModel({
+    required this.id,
+    required this.bloodRequestId,
+    required this.bloodRequestPatientName,
+    required this.bloodRequestHospital,
+    required this.otherUserId,
+    required this.otherUserName,
+    required this.unreadCount,
+    this.bloodRequestBloodType,
+    this.lastMessage,
+    this.lastMessageAt,
+  });
+
+  factory ConversationModel.fromJson(JsonMap json) => ConversationModel(
+    id: (json['id'] as num).toInt(),
+    bloodRequestId: (json['bloodRequestId'] as num?)?.toInt() ?? 0,
+    bloodRequestPatientName: json['bloodRequestPatientName']?.toString() ?? '',
+    bloodRequestHospital: json['bloodRequestHospital']?.toString() ?? '',
+    bloodRequestBloodType: json['bloodRequestBloodType']?.toString(),
+    otherUserId: (json['otherUserId'] as num?)?.toInt() ?? 0,
+    otherUserName: json['otherUserName']?.toString() ?? '',
+    lastMessage: json['lastMessage']?.toString(),
+    lastMessageAt: DateTime.tryParse(json['lastMessageAt']?.toString() ?? ''),
+    unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
+  );
+
+  final int id;
+  final int bloodRequestId;
+  final String bloodRequestPatientName;
+  final String bloodRequestHospital;
+  final String? bloodRequestBloodType;
+  final int otherUserId;
+  final String otherUserName;
+  final String? lastMessage;
+  final DateTime? lastMessageAt;
+  final int unreadCount;
+
+  String get requestLabel {
+    final bloodType = bloodRequestBloodType;
+    return [
+      'Solicitud de $bloodRequestPatientName',
+      if (bloodType != null && bloodType.isNotEmpty) bloodType,
+      bloodRequestHospital,
+    ].where((part) => part.isNotEmpty).join(' · ');
+  }
+
+  String get preview =>
+      (lastMessage == null || lastMessage!.isEmpty)
+          ? 'Conversación iniciada. Escribe el primer mensaje.'
+          : lastMessage!;
+}
+
+class ChatMessageModel {
+  const ChatMessageModel({
+    required this.id,
+    required this.conversationId,
+    required this.senderId,
+    required this.senderName,
+    required this.body,
+    required this.mine,
+    this.createdAt,
+  });
+
+  factory ChatMessageModel.fromJson(JsonMap json) => ChatMessageModel(
+    id: (json['id'] as num).toInt(),
+    conversationId: (json['conversationId'] as num?)?.toInt() ?? 0,
+    senderId: (json['senderId'] as num?)?.toInt() ?? 0,
+    senderName: json['senderName']?.toString() ?? '',
+    body: json['body']?.toString() ?? '',
+    mine: json['mine'] == true,
+    createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+  );
+
+  final int id;
+  final int conversationId;
+  final int senderId;
+  final String senderName;
+  final String body;
+  final bool mine;
+  final DateTime? createdAt;
+}

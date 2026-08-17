@@ -51,6 +51,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         title: const Text('Mi perfil'),
         actions: [
           IconButton(
+            tooltip: 'Mensajes',
+            onPressed: () => context.push('/mensajes'),
+            icon: const Icon(Icons.chat_outlined),
+          ),
+          IconButton(
             tooltip: 'Notificaciones',
             onPressed: () => context.push('/notificaciones'),
             icon: const Icon(Icons.notifications_outlined),
@@ -184,6 +189,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             },
           ),
           const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.chat_outlined),
+            title: const Text('Mensajes'),
+            subtitle: const Text('Conversaciones privadas sobre solicitudes'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/mensajes'),
+          ),
           ListTile(
             leading: const Icon(Icons.bloodtype_outlined),
             title: const Text('Mis solicitudes'),

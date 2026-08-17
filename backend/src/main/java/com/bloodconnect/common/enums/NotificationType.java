@@ -13,5 +13,6 @@ public enum NotificationType {
     DONATION_REPORTED,
     DONATION_CONFIRMED,
     DONATION_REMINDER,
+    CONVERSATION_MESSAGE,
     SYSTEM
 }

@@ -8,7 +8,9 @@ import {
   BloodRequestPayload,
   BloodType,
   CenterPayload,
+  ChatMessage,
   Compatibility,
+  Conversation,
   DashboardStatistics,
   Donation,
   DonationCenter,
@@ -132,6 +134,32 @@ export class ApiService {
 
   requestResponses(id: number) {
     return this.http.get<DonationResponse[]>(`${this.base}/blood-requests/${id}/responses`);
+  }
+
+  openConversation(requestId: number, donorUserId: number) {
+    return this.http.post<Conversation>(`${this.base}/blood-requests/${requestId}/conversations`, {
+      donorUserId,
+    });
+  }
+
+  conversations() {
+    return this.http.get<Conversation[]>(`${this.base}/conversations`);
+  }
+
+  conversation(id: number) {
+    return this.http.get<Conversation>(`${this.base}/conversations/${id}`);
+  }
+
+  conversationMessages(id: number) {
+    return this.http.get<ChatMessage[]>(`${this.base}/conversations/${id}/messages`);
+  }
+
+  sendConversationMessage(id: number, body: string) {
+    return this.http.post<ChatMessage>(`${this.base}/conversations/${id}/messages`, { body });
+  }
+
+  markConversationRead(id: number) {
+    return this.http.post<Conversation>(`${this.base}/conversations/${id}/read`, {});
   }
 
   centers(filters: Record<string, string | number | boolean | null | undefined> = {}) {

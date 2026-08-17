@@ -167,6 +167,12 @@ GET  /api/donation-centers
 GET  /api/donation-centers/nearby
 
 GET  /api/notifications
+POST /api/blood-requests/{id}/conversations
+GET  /api/conversations
+GET  /api/conversations/{id}
+GET  /api/conversations/{id}/messages
+POST /api/conversations/{id}/messages
+POST /api/conversations/{id}/read
 POST /api/devices
 
 GET  /api/admin/statistics/dashboard
@@ -206,6 +212,7 @@ La elegibilidad para donar debe ser determinada por profesionales de la salud.
 ## Privacidad
 
 - Dirección exacta y coordenadas del donante no se exponen públicamente
+- El chat interno no muestra teléfono, correo ni otros datos privados del donante
 - No se almacenan diagnósticos ni expedientes médicos
 - No se solicita cédula en el MVP
 - No se vende ni se pone precio a la sangre

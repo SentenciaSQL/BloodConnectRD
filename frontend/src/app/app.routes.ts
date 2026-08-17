@@ -117,6 +117,20 @@ export const routes: Routes = [
             (component) => component.NotificationsPage,
           ),
       },
+      {
+        path: 'mensajes',
+        loadComponent: () =>
+          import('./features/messages/messages.pages').then(
+            (component) => component.ConversationsPage,
+          ),
+      },
+      {
+        path: 'mensajes/:id',
+        loadComponent: () =>
+          import('./features/messages/messages.pages').then(
+            (component) => component.ConversationChatPage,
+          ),
+      },
     ],
   },
   {

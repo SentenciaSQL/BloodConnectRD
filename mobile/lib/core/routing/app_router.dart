@@ -15,6 +15,7 @@ import '../../features/donations/presentation/donation_history_page.dart';
 import '../../features/donors/presentation/donor_profile_form_page.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/home/presentation/home_shell_page.dart';
+import '../../features/messages/presentation/conversations_page.dart';
 import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 
@@ -49,6 +50,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notificaciones',
         builder: (context, state) => const NotificationsPage(),
+      ),
+      GoRoute(
+        path: '/mensajes',
+        builder: (context, state) => const ConversationsPage(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (context, state) => ConversationChatPage(
+              conversationId: int.parse(state.pathParameters['id']!),
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: '/donaciones',
