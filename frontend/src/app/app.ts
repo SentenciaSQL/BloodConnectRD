@@ -1,3 +1,4 @@
+import { ViewportScroller } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -14,10 +15,16 @@ import { ToastComponent } from './shared/components/ui-components';
 export class App {
   private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
+  private readonly viewport = inject(ViewportScroller);
 
   constructor() {
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
-      .subscribe((event) => this.seo.applyForUrl(event.urlAfterRedirects));
+      .subscribe((event) => {
+        this.seo.applyForUrl(event.urlAfterRedirects);
+        if (!event.urlAfterRedirects.includes('#')) {
+          this.viewport.scrollToPosition([0, 0]);
+        }
+      });
   }
 }
