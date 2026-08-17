@@ -93,7 +93,7 @@ public class BloodRequestService {
             Long provinceId,
             Long municipalityId,
             Urgency urgency,
-            RequestStatus status,
+            List<RequestStatus> statuses,
             String search,
             Pageable pageable
     ) {
@@ -103,7 +103,7 @@ public class BloodRequestService {
                         provinceId,
                         municipalityId,
                         urgency == null ? List.of() : List.of(urgency),
-                        status == null ? List.of() : List.of(status),
+                        statuses == null ? List.of() : statuses,
                         null,
                         search,
                         false
@@ -333,6 +333,7 @@ public class BloodRequestService {
                 progress.completedUnits(),
                 progress.pendingUnits(),
                 progress.progressPercent(),
+                progress.progress(),
                 request.getHospital(),
                 request.getProvince().getId(),
                 request.getProvince().getName(),

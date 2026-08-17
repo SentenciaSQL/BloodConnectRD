@@ -206,7 +206,7 @@ export class RequestsPage implements OnInit {
       .requests({
         page,
         size: 12,
-        status: 'OPEN',
+        status: ['OPEN', 'IN_PROGRESS'],
         search: values.search,
         bloodType: values.bloodType,
         provinceId: values.provinceId,

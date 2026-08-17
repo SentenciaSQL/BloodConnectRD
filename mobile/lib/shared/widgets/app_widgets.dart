@@ -102,31 +102,8 @@ class RequestCard extends StatelessWidget {
               Text(request.hospital),
               const SizedBox(height: 8),
               _IconText(Icons.location_on_outlined, request.location),
-              const SizedBox(height: 4),
-              _IconText(Icons.water_drop_outlined, request.progressLabel),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: request.unitsRequired == 0
-                            ? 0
-                            : request.progressPercent / 100,
-                        minHeight: 10,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${request.progressPercent}%',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
+              const SizedBox(height: 10),
+              RequestProgressBar(request: request),
               if (request.distanceKm != null) ...[
                 const SizedBox(height: 4),
                 _IconText(
@@ -138,6 +115,77 @@ class RequestCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class RequestProgressBar extends StatelessWidget {
+  const RequestProgressBar({
+    super.key,
+    required this.request,
+    this.height = 10,
+  });
+
+  final BloodRequestModel request;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final progress = request.progress;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: SizedBox(
+                  height: height,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(
+                        color: colors.primary.withValues(alpha: 0.16),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: progress,
+                          heightFactor: 1,
+                          child: ColoredBox(color: colors.primary),
+                        ),
+                      ),
+                      LinearProgressIndicator(
+                        value: progress,
+                        minHeight: height,
+                        color: colors.primary,
+                        backgroundColor: colors.primary.withValues(alpha: 0.16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${request.progressPercent}%',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colors.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          request.progressLabel,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
