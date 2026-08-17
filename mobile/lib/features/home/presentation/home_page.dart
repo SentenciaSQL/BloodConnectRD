@@ -177,9 +177,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onTap: () => context.push('/solicitudes/crear'),
                 ),
                 _QuickAction(
-                  icon: Icons.search,
-                  label: 'Buscar solicitudes',
-                  onTap: () => context.go('/solicitudes'),
+                  icon: Icons.assignment_outlined,
+                  label: 'Mis solicitudes',
+                  onTap: () => context.push('/mis-solicitudes'),
                 ),
                 _QuickAction(
                   icon: Icons.local_hospital_outlined,

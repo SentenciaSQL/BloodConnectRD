@@ -6,6 +6,7 @@ import '../../../core/networking/api_models.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/domain/auth_controller.dart';
+import '../../donations/data/donation_repository.dart';
 import '../data/blood_request_repository.dart';
 
 class BloodRequestDetailPage extends ConsumerStatefulWidget {
@@ -51,24 +52,33 @@ class _BloodRequestDetailPageState
     }
   }
 
-  Future<void> _reportDonation() async {
-    final units = await showDialog<int>(
+  Future<void> _reportDonation(int maxUnits) async {
+    final draft = await showModalBottomSheet<_DonationReportDraft>(
       context: context,
-      builder: (context) => const _ReportDonationDialog(),
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => _ReportDonationSheet(maxUnits: maxUnits),
     );
-    if (units == null || !mounted) return;
+    if (draft == null || !mounted) return;
     setState(() => _submitting = true);
     try {
       await ref
           .read(bloodRequestRepositoryProvider)
-          .reportDonation(widget.requestId, units: units);
+          .reportDonation(
+            widget.requestId,
+            units: draft.units,
+            donationDate: draft.date,
+            notes: draft.notes,
+          );
       ref.invalidate(bloodRequestDetailProvider(widget.requestId));
       ref.invalidate(requestDonationsProvider(widget.requestId));
+      ref.invalidate(donationHistoryProvider);
+      ref.invalidate(myRequestsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Tu donación fue reportada. El receptor confirmará las unidades recibidas.',
+            'Donación reportada – pendiente de confirmación del receptor.',
           ),
         ),
       );
@@ -83,9 +93,12 @@ class _BloodRequestDetailPageState
   }
 
   Future<void> _confirmDonation(DonationModel donation, int maxUnits) async {
-    final units = await showDialog<int>(
+    final units = await showModalBottomSheet<int>(
       context: context,
-      builder: (context) => _ConfirmDonationDialog(
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => _ConfirmReceptionSheet(
+        donorName: donation.donorName,
         reportedUnits: donation.units,
         alreadyConfirmed: donation.confirmedUnits,
         maxUnits: maxUnits,
@@ -99,9 +112,13 @@ class _BloodRequestDetailPageState
           .confirmDonation(donation.id, confirmedUnits: units);
       ref.invalidate(bloodRequestDetailProvider(widget.requestId));
       ref.invalidate(requestDonationsProvider(widget.requestId));
+      ref.invalidate(donationHistoryProvider);
+      ref.invalidate(myRequestsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Las unidades recibidas fueron confirmadas.')),
+        const SnackBar(
+          content: Text('Las unidades recibidas fueron confirmadas.'),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -118,30 +135,39 @@ class _BloodRequestDetailPageState
     final request = ref.watch(bloodRequestDetailProvider(widget.requestId));
     final donations = ref.watch(requestDonationsProvider(widget.requestId));
     final user = ref.watch(authControllerProvider).user;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de solicitud')),
-      body: request.when(
-        loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(
+    return request.when(
+      loading: () => const Scaffold(
+        appBar: AppBar(title: Text('Detalle de solicitud')),
+        body: LoadingView(),
+      ),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(title: const Text('Detalle de solicitud')),
+        body: ErrorView(
           message: friendlyError(error),
           onRetry: () =>
               ref.invalidate(bloodRequestDetailProvider(widget.requestId)),
         ),
-        data: (item) {
-          final isOwner = user != null && user.id == item.createdById;
-          final isDonor = user?.isDonor == true;
-          final reportedDonations = donations.valueOrNull ?? const <DonationModel>[];
-          final mine = reportedDonations.where(
-            (donation) => donation.donorUserId == user?.id,
-          );
-          final myDonation = mine.isEmpty ? null : mine.first;
-          final canReport =
-              isDonor &&
-              !isOwner &&
-              (item.status == 'OPEN' || item.status == 'IN_PROGRESS') &&
-              (myDonation == null || !myDonation.isPendingConfirmation);
-          return ListView(
-            padding: const EdgeInsets.all(20),
+      ),
+      data: (item) {
+        final isOwner = user != null && user.id == item.createdById;
+        final isDonor = user?.isDonor == true;
+        final reportedDonations =
+            donations.valueOrNull ?? const <DonationModel>[];
+        final mine = reportedDonations.where(
+          (donation) => donation.donorUserId == user?.id,
+        );
+        final myDonation = mine.isEmpty ? null : mine.first;
+        final pendingMine = myDonation != null && myDonation.isPendingConfirmation;
+        final canReport =
+            isDonor &&
+            !isOwner &&
+            (item.status == 'OPEN' || item.status == 'IN_PROGRESS') &&
+            item.pendingUnits > 0 &&
+            !pendingMine;
+        return Scaffold(
+          appBar: AppBar(title: const Text('Detalle de solicitud')),
+          body: ListView(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, canReport || pendingMine ? 120 : 28),
             children: [
               Row(
                 children: [
@@ -152,16 +178,28 @@ class _BloodRequestDetailPageState
               ),
               const SizedBox(height: 20),
               Text(
-                item.patientName,
+                item.hospital,
                 style: Theme.of(
                   context,
                 ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),
-              Text(item.hospital, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 20),
+              Text(item.location),
+              const SizedBox(height: 16),
+              Text(
+                'Necesita ${item.unitsRequired} ${item.unitsRequired == 1 ? 'unidad' : 'unidades'}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
               _ProgressCard(request: item),
               const SizedBox(height: 12),
+              _DetailRow(
+                icon: Icons.person_outline,
+                label: 'Paciente',
+                value: item.patientName,
+              ),
               _DetailRow(
                 icon: Icons.location_on_outlined,
                 label: 'Ubicación',
@@ -183,69 +221,81 @@ class _BloodRequestDetailPageState
                 const SizedBox(height: 6),
                 Text(item.description),
               ],
-              if (isOwner && reportedDonations.isNotEmpty) ...[
+              if (isOwner) ...[
                 const SizedBox(height: 24),
                 const SectionHeader(title: 'Donaciones reportadas'),
                 const SizedBox(height: 8),
-                Text(
-                  'Confirma cuántas unidades recibiste realmente de cada donante.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                for (final donation in reportedDonations)
-                  _ReportedDonationTile(
-                    donation: donation,
-                    remainingCapacity:
-                        item.pendingUnits + donation.confirmedUnits,
-                    submitting: _submitting,
-                    onConfirm: donation.isPendingConfirmation
-                        ? () => _confirmDonation(
-                            donation,
-                            (item.pendingUnits + donation.confirmedUnits)
-                                .clamp(0, donation.units)
-                                .toInt(),
-                          )
-                        : null,
-                  ),
+                if (reportedDonations.isEmpty)
+                  const Text(
+                    'Cuando un donante pulse “Ya doné”, el reporte aparecerá aquí para que confirmes la recepción.',
+                  )
+                else
+                  for (final donation in reportedDonations)
+                    _ReportedDonationTile(
+                      donation: donation,
+                      submitting: _submitting,
+                      onConfirm:
+                          donation.isPendingConfirmation &&
+                              item.pendingUnits + donation.confirmedUnits > 0
+                          ? () => _confirmDonation(
+                              donation,
+                              (item.pendingUnits + donation.confirmedUnits)
+                                  .clamp(0, donation.units)
+                                  .toInt(),
+                            )
+                          : null,
+                    ),
               ],
-              const SizedBox(height: 28),
-              if (!isOwner)
+              if (!isOwner) ...[
+                const SizedBox(height: 24),
                 PrimaryButton(
                   label: 'Quiero ayudar',
                   icon: Icons.volunteer_activism,
                   isLoading: _submitting,
-                  onPressed: item.status == 'OPEN' || item.status == 'IN_PROGRESS'
+                  onPressed:
+                      item.status == 'OPEN' || item.status == 'IN_PROGRESS'
                       ? _offerHelp
                       : null,
                 ),
-              if (canReport) ...[
-                const SizedBox(height: 12),
-                PrimaryButton(
-                  label: 'Marcar como donación realizada',
-                  icon: Icons.bloodtype,
-                  isLoading: _submitting,
-                  onPressed: _reportDonation,
-                ),
               ],
-              if (myDonation != null && !isOwner) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Tu reporte: ${myDonation.units} reportadas, ${myDonation.confirmedUnits} confirmadas · ${myDonation.statusLabel}',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-              if (item.status != 'OPEN' && item.status != 'IN_PROGRESS')
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text(
-                    'Esta solicitud ya no acepta nuevas respuestas.',
-                    textAlign: TextAlign.center,
+              if (pendingMine && !isOwner) ...[
+                const SizedBox(height: 16),
+                Card(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  child: const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Donación reportada – pendiente de confirmación del receptor.',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
+              ],
             ],
-          );
-        },
-      ),
+          ),
+          bottomNavigationBar: canReport
+              ? SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: FilledButton.icon(
+                      onPressed: _submitting
+                          ? null
+                          : () => _reportDonation(item.pendingUnits),
+                      icon: const Icon(Icons.water_drop),
+                      label: Text(_submitting ? 'Registrando…' : '🩸 Ya doné'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+        );
+      },
     );
   }
 }
@@ -263,11 +313,24 @@ class _ProgressCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              request.progressLabel,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    request.progressLabel,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${request.progressPercent}%',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             ClipRRect(
@@ -276,14 +339,13 @@ class _ProgressCard extends StatelessWidget {
                 value: request.unitsRequired == 0
                     ? 0
                     : request.progressPercent / 100,
-                minHeight: 10,
+                minHeight: 12,
               ),
             ),
             const SizedBox(height: 12),
             Text('Unidades requeridas: ${request.unitsRequired}'),
             Text('Unidades recibidas: ${request.completedUnits}'),
             Text('Unidades pendientes: ${request.pendingUnits}'),
-            Text('Progreso: ${request.progressPercent}%'),
           ],
         ),
       ),
@@ -294,31 +356,43 @@ class _ProgressCard extends StatelessWidget {
 class _ReportedDonationTile extends StatelessWidget {
   const _ReportedDonationTile({
     required this.donation,
-    required this.remainingCapacity,
     required this.submitting,
     this.onConfirm,
   });
 
   final DonationModel donation;
-  final int remainingCapacity;
   final bool submitting;
   final VoidCallback? onConfirm;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: ListTile(
-        title: Text(donation.donorName),
-        subtitle: Text(
-          '${formatDate(donation.date, short: true)} · ${donation.units} reportadas · ${donation.confirmedUnits} confirmadas\n${donation.statusLabel}',
-        ),
-        isThreeLine: true,
-        trailing: onConfirm == null
-            ? null
-            : TextButton(
-                onPressed: submitting || remainingCapacity <= 0 ? null : onConfirm,
-                child: const Text('Confirmar'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              donation.donorName,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Reportó: ${donation.units} ${donation.units == 1 ? 'unidad' : 'unidades'}',
+            ),
+            Text('Fecha: ${formatDate(donation.date, short: true)}'),
+            Text('Estado: ${donation.statusLabel}'),
+            if (onConfirm != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: submitting ? null : onConfirm,
+                child: const Text('Confirmar recepción'),
               ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -390,119 +464,186 @@ class _HelpDialogState extends State<_HelpDialog> {
   }
 }
 
-class _ReportDonationDialog extends StatefulWidget {
-  const _ReportDonationDialog();
+class _DonationReportDraft {
+  const _DonationReportDraft({
+    required this.units,
+    required this.date,
+    this.notes,
+  });
 
-  @override
-  State<_ReportDonationDialog> createState() => _ReportDonationDialogState();
+  final int units;
+  final DateTime date;
+  final String? notes;
 }
 
-class _ReportDonationDialogState extends State<_ReportDonationDialog> {
-  final _units = TextEditingController(text: '1');
+class _ReportDonationSheet extends StatefulWidget {
+  const _ReportDonationSheet({required this.maxUnits});
+
+  final int maxUnits;
+
+  @override
+  State<_ReportDonationSheet> createState() => _ReportDonationSheetState();
+}
+
+class _ReportDonationSheetState extends State<_ReportDonationSheet> {
+  late int _units;
+  DateTime _date = DateTime.now();
+  final _notes = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _units = widget.maxUnits < 1 ? 1 : 1;
+  }
 
   @override
   void dispose() {
-    _units.dispose();
+    _notes.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: DateTime.now(),
+    );
+    if (selected != null) setState(() => _date = selected);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Marcar como donación realizada'),
-      content: TextField(
-        controller: _units,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          labelText: 'Unidades donadas',
-          border: OutlineInputBorder(),
-        ),
+    final max = widget.maxUnits < 1 ? 1 : widget.maxUnits;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        8,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final value = int.tryParse(_units.text.trim()) ?? 0;
-            if (value <= 0) return;
-            Navigator.pop(context, value);
-          },
-          child: const Text('Reportar'),
-        ),
-      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Ya doné',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text('Esta solicitud aún necesita ${widget.maxUnits} ${widget.maxUnits == 1 ? 'unidad' : 'unidades'}.'),
+          const SizedBox(height: 20),
+          const Text('¿Cuántas unidades donaste?'),
+          const SizedBox(height: 8),
+          UnitsStepper(
+            value: _units,
+            min: 1,
+            max: max,
+            onChanged: (value) => setState(() => _units = value),
+          ),
+          const SizedBox(height: 16),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Fecha de donación'),
+            subtitle: Text(formatDate(_date, short: true)),
+            trailing: const Icon(Icons.event),
+            onTap: _pickDate,
+          ),
+          TextField(
+            controller: _notes,
+            maxLength: 500,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Nota opcional',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: widget.maxUnits < 1
+                ? null
+                : () => Navigator.pop(
+                    context,
+                    _DonationReportDraft(
+                      units: _units,
+                      date: _date,
+                      notes: _notes.text.trim().isEmpty
+                          ? null
+                          : _notes.text.trim(),
+                    ),
+                  ),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            child: const Text('Confirmar donación'),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _ConfirmDonationDialog extends StatefulWidget {
-  const _ConfirmDonationDialog({
+class _ConfirmReceptionSheet extends StatefulWidget {
+  const _ConfirmReceptionSheet({
+    required this.donorName,
     required this.reportedUnits,
     required this.alreadyConfirmed,
     required this.maxUnits,
   });
 
+  final String donorName;
   final int reportedUnits;
   final int alreadyConfirmed;
   final int maxUnits;
 
   @override
-  State<_ConfirmDonationDialog> createState() => _ConfirmDonationDialogState();
+  State<_ConfirmReceptionSheet> createState() => _ConfirmReceptionSheetState();
 }
 
-class _ConfirmDonationDialogState extends State<_ConfirmDonationDialog> {
-  late final TextEditingController _units;
+class _ConfirmReceptionSheetState extends State<_ConfirmReceptionSheet> {
+  late int _units;
 
   @override
   void initState() {
     super.initState();
-    _units = TextEditingController(text: '${widget.maxUnits}');
-  }
-
-  @override
-  void dispose() {
-    _units.dispose();
-    super.dispose();
+    _units = widget.maxUnits < 1 ? 1 : widget.maxUnits;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Confirmar unidades recibidas'),
-      content: Column(
+    final min = widget.alreadyConfirmed < 1 ? 1 : widget.alreadyConfirmed;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'El donante reportó ${widget.reportedUnits} ${widget.reportedUnits == 1 ? 'unidad' : 'unidades'}. '
-            'Ya confirmadas: ${widget.alreadyConfirmed}. Máximo: ${widget.maxUnits}.',
+            'Confirmar recepción',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
+          const SizedBox(height: 8),
+          Text('${widget.donorName} reportó ${widget.reportedUnits} ${widget.reportedUnits == 1 ? 'unidad' : 'unidades'}.'),
+          const SizedBox(height: 16),
+          Text('Unidades reportadas: ${widget.reportedUnits}'),
+          Text('Unidades recibidas: $_units'),
           const SizedBox(height: 12),
-          TextField(
-            controller: _units,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Unidades recibidas',
-              border: OutlineInputBorder(),
-            ),
+          UnitsStepper(
+            value: _units,
+            min: min,
+            max: widget.maxUnits < min ? min : widget.maxUnits,
+            onChanged: (value) => setState(() => _units = value),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, _units),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            child: const Text('Confirmar unidades'),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final value = int.tryParse(_units.text.trim()) ?? 0;
-            if (value <= 0 || value > widget.maxUnits) return;
-            Navigator.pop(context, value);
-          },
-          child: const Text('Confirmar'),
-        ),
-      ],
     );
   }
 }

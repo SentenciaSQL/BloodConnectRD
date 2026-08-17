@@ -22,9 +22,11 @@ import {
   BloodTypeBadgeComponent,
   EmptyStateComponent,
   LoadingSpinnerComponent,
+  ModalComponent,
   PaginationComponent,
   RequestCardComponent,
   RequestProgressComponent,
+  UnitsStepperComponent,
   UrgencyBadgeComponent,
 } from '../../shared/components/ui-components';
 
@@ -303,6 +305,13 @@ export class RequestsPage implements OnInit {
   }
 }
 
+function localIsoDate(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 @Component({
   selector: 'app-request-detail-page',
   standalone: true,
@@ -313,7 +322,9 @@ export class RequestsPage implements OnInit {
     BadgeComponent,
     BloodTypeBadgeComponent,
     LoadingSpinnerComponent,
+    ModalComponent,
     RequestProgressComponent,
+    UnitsStepperComponent,
     UrgencyBadgeComponent,
   ],
   template: `
@@ -329,13 +340,26 @@ export class RequestsPage implements OnInit {
               <app-blood-type-badge [type]="request()!.bloodType" />
               <app-urgency-badge [urgency]="request()!.urgency" />
             </div>
-            <p class="mt-7 text-sm font-bold uppercase tracking-wider text-brand-700">Solicitud de sangre</p>
+            <p class="mt-7 text-sm font-bold uppercase tracking-wider text-brand-700">Detalle de solicitud</p>
             <h1 class="mt-2 font-display text-4xl font-semibold text-ink-950">
               {{ request()!.hospital }}
             </h1>
             <p class="mt-3 text-ink-600">
-              {{ request()!.municipalityName }}, {{ request()!.provinceName }}
+              {{ request()!.bloodType }} · {{ request()!.municipalityName }}, {{ request()!.provinceName }}
             </p>
+            <p class="mt-5 font-display text-2xl font-semibold text-ink-950">
+              Necesita {{ request()!.unitsRequired }}
+              {{ request()!.unitsRequired === 1 ? 'unidad' : 'unidades' }}
+            </p>
+            @if (canReportDonation()) {
+              <button type="button" class="btn-primary mt-5 min-h-12 px-8 text-base" (click)="openReportModal()">
+                Ya doné
+              </button>
+            } @else if (myPendingDonation()) {
+              <p class="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+                Donación reportada – pendiente de confirmación del receptor.
+              </p>
+            }
 
             <div class="mt-8">
               <app-request-progress [request]="request()!" />
@@ -372,51 +396,44 @@ export class RequestsPage implements OnInit {
               </div>
             }
 
-            @if (isOwner() && donations().length) {
+            @if (isOwner()) {
               <section class="mt-10 border-t border-ink-100 pt-8">
                 <h2 class="font-display text-2xl font-semibold text-ink-950">Donaciones reportadas</h2>
                 <p class="mt-1 text-sm text-ink-600">
                   Confirma cuántas unidades recibiste realmente de cada donante. El progreso solo
                   se actualiza con unidades confirmadas.
                 </p>
-                <div class="mt-5 grid gap-4">
-                  @for (donation of donations(); track donation.id) {
-                    <article class="rounded-2xl border border-ink-100 p-5">
-                      <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <h3 class="font-bold text-ink-950">{{ donation.donorName }}</h3>
-                          <p class="mt-1 text-sm text-ink-500">
-                            Reportada el {{ donation.donationDate | date: 'mediumDate' }}
-                          </p>
+                @if (donations().length) {
+                  <div class="mt-5 grid gap-4">
+                    @for (donation of donations(); track donation.id) {
+                      <article class="rounded-2xl border border-ink-100 p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <h3 class="font-bold text-ink-950">{{ donation.donorName }}</h3>
+                            <p class="mt-1 text-sm text-ink-500">
+                              Reportada el {{ donation.donationDate | date: 'dd/MM/yyyy' }}
+                            </p>
+                          </div>
+                          <app-badge [tone]="statusTone(donation.status)">
+                            {{ statusLabel(donation.status) }}
+                          </app-badge>
                         </div>
-                        <app-badge [tone]="statusTone(donation.status)">
-                          {{ statusLabel(donation.status) }}
-                        </app-badge>
-                      </div>
-                      <p class="mt-3 text-sm text-ink-600">
-                        Reportadas: {{ donation.units }} · Confirmadas: {{ donation.confirmedUnits }}
-                      </p>
-                      @if (canConfirm(donation)) {
-                        <form class="mt-4 flex flex-wrap items-end gap-3" (ngSubmit)="confirm(donation)">
-                          <label class="min-w-[10rem] flex-1">
-                            <span class="form-label">Unidades recibidas</span>
-                            <input
-                              type="number"
-                              min="1"
-                              class="form-control"
-                              [max]="maxConfirmable(donation)"
-                              [value]="confirmValue(donation)"
-                              (input)="setConfirmUnits(donation.id, $any($event.target).value)"
-                            />
-                          </label>
-                          <button type="submit" class="btn-primary" [disabled]="confirmingId() === donation.id">
-                            {{ confirmingId() === donation.id ? 'Confirmando…' : 'Confirmar unidades recibidas' }}
+                        <p class="mt-3 text-sm text-ink-600">
+                          Reportó: <strong>{{ donation.units }} {{ donation.units === 1 ? 'unidad' : 'unidades' }}</strong>
+                        </p>
+                        @if (canConfirm(donation)) {
+                          <button type="button" class="btn-primary mt-4" (click)="openConfirmModal(donation)">
+                            Confirmar recepción
                           </button>
-                        </form>
-                      }
-                    </article>
-                  }
-                </div>
+                        }
+                      </article>
+                    }
+                  </div>
+                } @else {
+                  <p class="mt-5 rounded-xl border border-dashed border-ink-200 bg-ink-50 px-4 py-4 text-sm text-ink-600">
+                    Cuando un donante pulse “Ya doné”, el reporte aparecerá aquí para que confirmes la recepción.
+                  </p>
+                }
               </section>
             }
           </article>
@@ -483,40 +500,13 @@ export class RequestsPage implements OnInit {
             </div>
 
             @if (canReportDonation()) {
-              <div class="rounded-2xl border border-brand-200 bg-white p-6">
-                <h2 class="font-display text-xl font-semibold text-ink-950">Marcar como donación realizada</h2>
-                <p class="mt-2 text-sm text-ink-600">
-                  Indica cuántas unidades donaste. El progreso de la solicitud no cambia hasta que
-                  el receptor confirme la recepción.
-                </p>
-                <form class="mt-5 grid gap-4" [formGroup]="reportForm" (ngSubmit)="reportDonation()">
-                  <label>
-                    <span class="form-label">Unidades donadas</span>
-                    <input type="number" min="1" formControlName="units" class="form-control" />
-                  </label>
-                  <label>
-                    <span class="form-label">Notas opcionales</span>
-                    <textarea formControlName="notes" rows="2" maxlength="500" class="form-control"></textarea>
-                  </label>
-                  <button type="submit" class="btn-primary w-full" [disabled]="reporting()">
-                    {{ reporting() ? 'Registrando…' : 'Marcar como donación realizada' }}
-                  </button>
-                </form>
-              </div>
-            } @else if (myDonation()) {
-              <div class="rounded-2xl border border-ink-100 bg-white p-6">
-                <h2 class="font-display text-xl font-semibold text-ink-950">Tu reporte</h2>
-                <p class="mt-2 text-sm text-ink-600">
-                  Reportaste {{ myDonation()!.units }}
-                  {{ myDonation()!.units === 1 ? 'unidad' : 'unidades' }}.
-                  Confirmadas: {{ myDonation()!.confirmedUnits }}.
-                </p>
-                <p class="mt-3">
-                  <app-badge [tone]="statusTone(myDonation()!.status)">
-                    {{ statusLabel(myDonation()!.status) }}
-                  </app-badge>
-                </p>
-              </div>
+              <button type="button" class="btn-primary mt-6 w-full min-h-12" (click)="openReportModal()">
+                Ya doné
+              </button>
+            } @else if (myPendingDonation()) {
+              <p class="mt-5 rounded-lg bg-ink-900 px-4 py-3 text-sm font-semibold text-amber-200">
+                Donación reportada – pendiente de confirmación del receptor.
+              </p>
             }
           </aside>
         </div>
@@ -526,6 +516,76 @@ export class RequestsPage implements OnInit {
           <p class="mt-2 text-ink-600">El caso no existe o ya no se puede consultar.</p>
         </div>
       }
+
+      <app-modal [open]="reportModalOpen()" title="Ya doné" (closed)="reportModalOpen.set(false)">
+        <p class="text-sm text-ink-600">
+          Esta solicitud aún necesita {{ maxReportable() }}
+          {{ maxReportable() === 1 ? 'unidad' : 'unidades' }}. El progreso no cambia hasta que el
+          receptor confirme la recepción.
+        </p>
+        <form class="mt-6 grid gap-5" [formGroup]="reportForm" (ngSubmit)="reportDonation()">
+          <div>
+            <span class="form-label">¿Cuántas unidades donaste?</span>
+            <app-units-stepper
+              [value]="reportForm.controls.units.value"
+              [min]="1"
+              [max]="maxReportable()"
+              (valueChange)="reportForm.controls.units.setValue($event)"
+            />
+          </div>
+          <label>
+            <span class="form-label">Fecha de donación</span>
+            <input type="date" formControlName="donationDate" class="form-control" [max]="today" />
+          </label>
+          <label>
+            <span class="form-label">Nota opcional</span>
+            <textarea formControlName="notes" rows="2" maxlength="500" class="form-control"></textarea>
+          </label>
+          <button type="submit" class="btn-primary w-full" [disabled]="reporting() || maxReportable() < 1">
+            {{ reporting() ? 'Registrando…' : 'Confirmar donación' }}
+          </button>
+        </form>
+      </app-modal>
+
+      <app-modal
+        [open]="confirmModalOpen()"
+        title="Confirmar recepción"
+        (closed)="closeConfirmModal()"
+      >
+        @if (donationToConfirm(); as donation) {
+          <p class="text-sm text-ink-600">
+            <strong>{{ donation.donorName }}</strong> reportó {{ donation.units }}
+            {{ donation.units === 1 ? 'unidad' : 'unidades' }}.
+          </p>
+          <dl class="mt-5 grid gap-2 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-ink-500">Unidades reportadas</dt>
+              <dd class="font-bold">{{ donation.units }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-ink-500">Unidades recibidas</dt>
+              <dd class="font-bold">{{ receivedUnits() }}</dd>
+            </div>
+          </dl>
+          <div class="mt-5">
+            <span class="form-label">Unidades recibidas</span>
+            <app-units-stepper
+              [value]="receivedUnits()"
+              [min]="Math.max(1, donation.confirmedUnits)"
+              [max]="maxConfirmable(donation)"
+              (valueChange)="receivedUnits.set($event)"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-primary mt-6 w-full"
+            [disabled]="confirmingId() === donation.id"
+            (click)="confirm(donation)"
+          >
+            {{ confirmingId() === donation.id ? 'Confirmando…' : 'Confirmar unidades' }}
+          </button>
+        }
+      </app-modal>
     </section>
   `,
 })
@@ -535,18 +595,24 @@ export class RequestDetailPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
   readonly auth = inject(AuthService);
+  readonly Math = Math;
+  readonly today = localIsoDate();
   readonly request = signal<BloodRequest | null>(null);
   readonly donations = signal<Donation[]>([]);
-  readonly confirmUnits = signal<Record<number, number>>({});
   readonly loading = signal(true);
   readonly sending = signal(false);
   readonly reporting = signal(false);
   readonly confirmingId = signal<number | null>(null);
+  readonly reportModalOpen = signal(false);
+  readonly confirmModalOpen = signal(false);
+  readonly donationToConfirm = signal<Donation | null>(null);
+  readonly receivedUnits = signal(1);
   readonly responseForm = this.fb.nonNullable.group({
     message: ['', Validators.maxLength(500)],
   });
   readonly reportForm = this.fb.nonNullable.group({
     units: [1, [Validators.required, Validators.min(1)]],
+    donationDate: [this.today, Validators.required],
     notes: ['', Validators.maxLength(500)],
   });
 
@@ -567,20 +633,30 @@ export class RequestDetailPage implements OnInit {
     return Boolean(userId && userId === this.request()?.createdById);
   }
 
+  maxReportable(): number {
+    const request = this.request();
+    return request ? Math.max(0, requestPendingUnits(request)) : 0;
+  }
+
   canReportDonation(): boolean {
     const request = this.request();
     if (!request || !this.auth.isDonor() || this.isOwner()) return false;
     if (request.status !== 'OPEN' && request.status !== 'IN_PROGRESS') return false;
-    return !this.donations().some(
-      (donation) =>
-        donation.donorUserId === this.auth.user()?.id &&
-        (donation.status === 'REPORTED' || donation.status === 'PARTIALLY_CONFIRMED'),
-    );
+    if (this.maxReportable() < 1) return false;
+    return !this.myPendingDonation();
   }
 
   myDonation(): Donation | undefined {
     const userId = this.auth.user()?.id;
     return this.donations().find((donation) => donation.donorUserId === userId);
+  }
+
+  myPendingDonation(): Donation | undefined {
+    const donation = this.myDonation();
+    if (!donation) return undefined;
+    return donation.status === 'REPORTED' || donation.status === 'PARTIALLY_CONFIRMED'
+      ? donation
+      : undefined;
   }
 
   canConfirm(donation: Donation): boolean {
@@ -596,18 +672,24 @@ export class RequestDetailPage implements OnInit {
     return Math.min(donation.units, donation.confirmedUnits + pending);
   }
 
-  defaultConfirmUnits(donation: Donation): number {
-    return Math.max(donation.confirmedUnits || 1, Math.min(donation.units, this.maxConfirmable(donation)));
+  openReportModal(): void {
+    this.reportForm.reset({
+      units: 1,
+      donationDate: this.today,
+      notes: '',
+    });
+    this.reportModalOpen.set(true);
   }
 
-  confirmValue(donation: Donation): number {
-    const selected = this.confirmUnits()[donation.id];
-    return selected === undefined ? this.defaultConfirmUnits(donation) : selected;
+  openConfirmModal(donation: Donation): void {
+    this.donationToConfirm.set(donation);
+    this.receivedUnits.set(this.maxConfirmable(donation));
+    this.confirmModalOpen.set(true);
   }
 
-  setConfirmUnits(id: number, value: string): void {
-    const units = Number(value);
-    this.confirmUnits.update((current) => ({ ...current, [id]: units }));
+  closeConfirmModal(): void {
+    this.confirmModalOpen.set(false);
+    this.donationToConfirm.set(null);
   }
 
   statusLabel(status: string): string {
@@ -639,27 +721,39 @@ export class RequestDetailPage implements OnInit {
       this.reportForm.markAllAsTouched();
       return;
     }
-    this.reporting.set(true);
     const value = this.reportForm.getRawValue();
-    this.api.reportDonation(this.request()!.id, { units: value.units, notes: value.notes || undefined }).subscribe({
-      next: () => {
-        this.toast.success('Tu donación fue reportada. El receptor confirmará las unidades recibidas.');
-        this.refresh();
-      },
-      error: (error) => {
-        this.reporting.set(false);
-        this.toast.error(apiErrorMessage(error));
-      },
-      complete: () => this.reporting.set(false),
-    });
+    if (value.units > this.maxReportable()) {
+      this.toast.error('No puedes reportar más unidades de las que aún necesita la solicitud.');
+      return;
+    }
+    this.reporting.set(true);
+    this.api
+      .reportDonation(this.request()!.id, {
+        units: value.units,
+        donationDate: value.donationDate,
+        notes: value.notes || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.toast.success('Donación reportada – pendiente de confirmación del receptor.');
+          this.reportModalOpen.set(false);
+          this.refresh();
+        },
+        error: (error) => {
+          this.reporting.set(false);
+          this.toast.error(apiErrorMessage(error));
+        },
+        complete: () => this.reporting.set(false),
+      });
   }
 
   confirm(donation: Donation): void {
-    const units = this.confirmValue(donation);
+    const units = this.receivedUnits();
     this.confirmingId.set(donation.id);
     this.api.confirmDonation(donation.id, units).subscribe({
       next: () => {
         this.toast.success('Las unidades recibidas fueron confirmadas.');
+        this.closeConfirmModal();
         this.refresh();
       },
       error: (error) => {
@@ -690,3 +784,4 @@ export class RequestDetailPage implements OnInit {
     });
   }
 }
+

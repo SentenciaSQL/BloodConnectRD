@@ -240,7 +240,7 @@ class BloodRequestModel {
   ].where((part) => part.isNotEmpty).join(', ');
 
   String get progressLabel =>
-      '$completedUnits de $unitsRequired unidades ($progressPercent%)';
+      '$completedUnits de $unitsRequired unidades recibidas';
 }
 
 class DonationCenterModel {
@@ -296,6 +296,10 @@ class DonationModel {
     required this.confirmedUnits,
     required this.status,
     required this.notes,
+    this.patientName,
+    this.hospital,
+    this.receiverName,
+    this.bloodRequestId,
   });
 
   factory DonationModel.fromJson(JsonMap json) => DonationModel(
@@ -308,6 +312,10 @@ class DonationModel {
     confirmedUnits: (json['confirmedUnits'] as num?)?.toInt() ?? 0,
     status: json['status']?.toString() ?? '',
     notes: json['notes']?.toString() ?? '',
+    patientName: json['patientName']?.toString(),
+    hospital: json['hospital']?.toString(),
+    receiverName: json['receiverName']?.toString(),
+    bloodRequestId: (json['bloodRequestId'] as num?)?.toInt(),
   );
 
   final int id;
@@ -319,18 +327,26 @@ class DonationModel {
   final int confirmedUnits;
   final String status;
   final String notes;
+  final String? patientName;
+  final String? hospital;
+  final String? receiverName;
+  final int? bloodRequestId;
 
   bool get isPendingConfirmation =>
       status == 'REPORTED' || status == 'PARTIALLY_CONFIRMED';
 
   String get statusLabel => switch (status) {
-    'REPORTED' => 'Reportada',
+    'REPORTED' => 'Pendiente de confirmación',
     'PARTIALLY_CONFIRMED' => 'Confirmada parcialmente',
-    'CONFIRMED' => 'Confirmada',
+    'CONFIRMED' || 'COMPLETED' => 'Confirmada',
     'CANCELLED' => 'Cancelada',
-    'COMPLETED' => 'Completada',
     _ => status,
   };
+
+  String get title =>
+      (hospital != null && hospital!.isNotEmpty)
+          ? hospital!
+          : (centerName.isEmpty ? 'Donación registrada' : centerName);
 }
 
 class DonationHistory {

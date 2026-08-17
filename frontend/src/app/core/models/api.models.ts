@@ -15,11 +15,11 @@ export type Sex = 'MALE' | 'FEMALE' | 'OTHER';
 export const BLOOD_TYPES: BloodType[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export const DONATION_STATUS_LABELS: Record<string, string> = {
-  REPORTED: 'Reportada',
+  REPORTED: 'Pendiente de confirmación',
   PARTIALLY_CONFIRMED: 'Confirmada parcialmente',
   CONFIRMED: 'Confirmada',
   CANCELLED: 'Cancelada',
-  COMPLETED: 'Completada',
+  COMPLETED: 'Confirmada',
 };
 
 export interface User {
@@ -146,6 +146,9 @@ export interface Donation {
   donorUserId: number;
   donorName: string;
   bloodRequestId?: number | null;
+  patientName?: string | null;
+  hospital?: string | null;
+  receiverName?: string | null;
   donationCenterId?: number | null;
   donationCenterName?: string | null;
   donationDate: string;
