@@ -23,6 +23,7 @@ import {
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage } from '../../core/services/auth.service';
+import { bloodRequestSlug } from '../../core/seo/request-slug';
 import { ToastService } from '../../core/services/toast.service';
 import {
   BadgeComponent,
@@ -433,7 +434,7 @@ export class AdminDonorsPage implements OnInit {
                 <td class="px-5 py-4">{{ request.deadline | date: 'mediumDate' }}</td>
                 <td class="px-5 py-4"><app-badge>{{ statusLabels[request.status] }}</app-badge></td>
                 <td class="px-5 py-4">
-                  <a [routerLink]="['/solicitudes', request.id]" class="font-bold text-brand-700">Ver</a>
+                  <a [routerLink]="['/solicitudes', requestSlug(request)]" class="font-bold text-brand-700">Ver</a>
                 </td>
               </tr>
             }
@@ -452,6 +453,7 @@ export class AdminRequestsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
+  readonly requestSlug = bloodRequestSlug;
   readonly page = signal<PageResponse<BloodRequest> | null>(null);
   readonly loading = signal(true);
   readonly statusLabels: Record<string, string> = {

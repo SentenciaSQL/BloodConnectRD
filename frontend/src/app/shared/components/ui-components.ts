@@ -13,6 +13,7 @@ import {
   requestPendingUnits,
   requestProgressPercent,
 } from '../../core/models/api.models';
+import { bloodRequestSlug } from '../../core/seo/request-slug';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
@@ -231,7 +232,7 @@ export class UrgencyBadgeComponent {
         ({{ progressPercent() }}%)
       </p>
       <a
-        [routerLink]="['/solicitudes', request().id]"
+        [routerLink]="['/solicitudes', slug()]"
         class="mt-auto pt-4 text-sm font-bold text-brand-700 hover:text-brand-900"
       >
         Ver solicitud <span aria-hidden="true">→</span>
@@ -241,6 +242,7 @@ export class UrgencyBadgeComponent {
 })
 export class RequestCardComponent {
   readonly request = input.required<BloodRequest>();
+  readonly slug = () => bloodRequestSlug(this.request());
 
   progressPercent(): number {
     return requestProgressPercent(this.request());

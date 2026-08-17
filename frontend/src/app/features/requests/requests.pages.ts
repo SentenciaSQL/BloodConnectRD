@@ -1,5 +1,6 @@
-import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
+import { Component, DestroyRef, OnInit, PLATFORM_ID, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -19,6 +20,8 @@ import {
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage, AuthService } from '../../core/services/auth.service';
+import { bloodRequestPath, bloodRequestSlug, parseRequestId } from '../../core/seo/request-slug';
+import { SeoService } from '../../core/seo/seo.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
   BadgeComponent,
@@ -345,10 +348,10 @@ function localIsoDate(date = new Date()): string {
             </div>
             <p class="mt-7 text-sm font-bold uppercase tracking-wider text-brand-700">Detalle de solicitud</p>
             <h1 class="mt-2 font-display text-4xl font-semibold text-ink-950">
-              {{ request()!.hospital }}
+              Se necesitan donantes {{ request()!.bloodType }} en {{ request()!.municipalityName }}
             </h1>
             <p class="mt-3 text-ink-600">
-              {{ request()!.bloodType }} · {{ request()!.municipalityName }}, {{ request()!.provinceName }}
+              {{ request()!.hospital }} · {{ request()!.provinceName }}
             </p>
             <p class="mt-5 font-display text-2xl font-semibold text-ink-950">
               Necesita {{ request()!.unitsRequired }}
@@ -527,7 +530,7 @@ function localIsoDate(date = new Date()): string {
                 </p>
                 <a
                   routerLink="/dashboard/perfil"
-                  [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
+                  [queryParams]="{ retorno: requestLink() }"
                   class="btn-primary mt-4 w-full"
                 >
                   Completar perfil de donante
@@ -535,14 +538,14 @@ function localIsoDate(date = new Date()): string {
               } @else if (!auth.isAuthenticated()) {
                 <a
                   routerLink="/login"
-                  [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
+                  [queryParams]="{ retorno: requestLink() }"
                   class="btn-primary mt-6 w-full"
                 >
                   Iniciar sesión para ayudar
                 </a>
                 <a
                   routerLink="/registro"
-                  [queryParams]="{ retorno: '/solicitudes/' + request()!.id }"
+                  [queryParams]="{ retorno: requestLink() }"
                   class="mt-3 block text-center text-sm font-semibold text-brand-200 hover:text-white"
                 >
                   Crear cuenta
@@ -654,6 +657,9 @@ export class RequestDetailPage implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
+  private readonly seo = inject(SeoService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   readonly auth = inject(AuthService);
   readonly Math = Math;
   readonly today = localIsoDate();
@@ -679,16 +685,14 @@ export class RequestDetailPage implements OnInit {
   });
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.api.request(id).subscribe({
-      next: (request) => {
-        this.request.set(request);
-        this.loadDonations(request.id);
-        this.loadOffers(request.id);
-      },
-      error: () => this.loading.set(false),
-      complete: () => this.loading.set(false),
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.resolve(params.get('id'));
     });
+  }
+
+  requestLink(): string {
+    const request = this.request();
+    return request ? bloodRequestPath(request) : '/solicitudes';
   }
 
   isOwner(): boolean {
@@ -866,6 +870,45 @@ export class RequestDetailPage implements OnInit {
       },
       complete: () => this.confirmingId.set(null),
     });
+  }
+
+  private resolve(param: string | null): void {
+    const id = parseRequestId(param);
+    if (!id) {
+      this.request.set(null);
+      this.loading.set(false);
+      this.seo.applyUnavailableRequest(this.router.url.split('?')[0]);
+      return;
+    }
+    if (this.request()?.id === id) {
+      this.canonicalize(this.request()!);
+      return;
+    }
+    this.loading.set(true);
+    this.api.request(id).subscribe({
+      next: (request) => {
+        this.request.set(request);
+        this.seo.applyBloodRequest(request);
+        this.canonicalize(request);
+        this.loadDonations(request.id);
+        this.loadOffers(request.id);
+      },
+      error: () => {
+        this.request.set(null);
+        this.loading.set(false);
+        this.seo.applyUnavailableRequest(this.router.url.split('?')[0]);
+      },
+      complete: () => this.loading.set(false),
+    });
+  }
+
+  private canonicalize(request: BloodRequest): void {
+    if (!this.isBrowser) return;
+    const slug = bloodRequestSlug(request);
+    const current = this.route.snapshot.paramMap.get('id');
+    if (current !== slug) {
+      void this.router.navigate(['/solicitudes', slug], { replaceUrl: true });
+    }
   }
 
   private refresh(): void {

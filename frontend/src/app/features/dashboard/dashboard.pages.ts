@@ -28,6 +28,7 @@ import {
 } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
 import { apiErrorMessage, AuthService } from '../../core/services/auth.service';
+import { bloodRequestSlug } from '../../core/seo/request-slug';
 import { ToastService } from '../../core/services/toast.service';
 import {
   BadgeComponent,
@@ -491,7 +492,7 @@ export class ProfilePage implements OnInit {
                 </p>
               </div>
               <div class="flex gap-2">
-                <a [routerLink]="['/solicitudes', request.id]" class="btn-secondary">Ver</a>
+                <a [routerLink]="['/solicitudes', requestSlug(request)]" class="btn-secondary">Ver</a>
                 @if (request.status === 'OPEN' || request.status === 'IN_PROGRESS') {
                   <button type="button" class="btn-secondary !text-brand-700" (click)="cancel(request)">
                     Cancelar
@@ -616,6 +617,7 @@ export class MyRequestsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
+  readonly requestSlug = bloodRequestSlug;
   readonly bloodTypes = BLOOD_TYPES;
   readonly page = signal<PageResponse<BloodRequest> | null>(null);
   readonly provinces = signal<Province[]>([]);

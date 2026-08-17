@@ -60,7 +60,8 @@ public class SecurityConfig {
                                 "/api/blood-requests/urgent",
                                 "/api/donation-centers",
                                 "/api/donation-centers/{id}",
-                                "/api/donation-centers/nearby"
+                                "/api/donation-centers/nearby",
+                                "/api/public/**"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
