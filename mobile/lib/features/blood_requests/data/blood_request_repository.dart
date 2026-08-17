@@ -232,7 +232,7 @@ final requestDonationsProvider = FutureProvider.family<List<DonationModel>, int>
   },
 );
 
-void invalidateBloodRequestCaches(Ref ref, {int? requestId}) {
+void invalidateBloodRequestCaches(WidgetRef ref, {int? requestId}) {
   ref.invalidate(bloodRequestsProvider);
   ref.invalidate(urgentRequestsProvider);
   ref.invalidate(compatibleRequestsProvider);
