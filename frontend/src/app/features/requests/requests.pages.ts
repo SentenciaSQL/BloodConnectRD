@@ -354,7 +354,7 @@ function localIsoDate(date = new Date()): string {
               {{ request()!.hospital }} · {{ request()!.provinceName }}
             </p>
             <p class="mt-5 font-display text-2xl font-semibold text-ink-950">
-              Necesita {{ request()!.unitsRequired }}
+              {{ request()!.patientName }} Necesita {{ request()!.unitsRequired }}
               {{ request()!.unitsRequired === 1 ? 'unidad' : 'unidades' }}
             </p>
             @if (canReportDonation()) {

@@ -9,12 +9,6 @@ import { AuthService } from '../core/services/auth.service';
   imports: [RouterLink, RouterLinkActive, RouterOutlet],
   template: `
     <div class="min-h-screen bg-[#fffaf8] text-ink-950">
-      <a
-        href="#contenido-principal"
-        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:font-bold focus:text-brand-700"
-      >
-        Saltar al contenido
-      </a>
       <header class="sticky top-0 z-40 border-b border-ink-100 bg-white/95 backdrop-blur">
         <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
           <a routerLink="/" class="flex items-center gap-3" aria-label="BloodConnect RD, inicio">

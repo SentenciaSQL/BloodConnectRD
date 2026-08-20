@@ -16,4 +16,4 @@ Disallow: /dashboard/
 Disallow: /admin
 Disallow: /admin/
 
-Sitemap: /sitemap.xml
+Sitemap: https://bloodconnectrd.netlify.app/sitemap.xml
