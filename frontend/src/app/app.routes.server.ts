@@ -28,8 +28,11 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'admin', renderMode: RenderMode.Client, headers: noIndex },
   { path: 'admin/**', renderMode: RenderMode.Client, headers: noIndex },
 
-  // Everything else
-  { path: '**', renderMode: RenderMode.Client }
+  // Everything else: render on the server so an unknown URL can actually
+  // respond with HTTP 404 (see NotFoundPage), instead of shipping the
+  // prerendered shell with a 200 that only redirects client-side.
+  { path: '**', renderMode: RenderMode.Server }
+
 ];
 
 // export const serverRoutes: ServerRoute[] = [

@@ -178,5 +178,9 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: '' },
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./features/not-found/not-found.page').then((component) => component.NotFoundPage),
+  },
 ];

@@ -107,6 +107,13 @@ export const REQUEST_UNAVAILABLE_SEO: PageSeo = {
   robots: NOINDEX_NOFOLLOW,
 };
 
+export const NOT_FOUND_SEO: PageSeo = {
+  path: '',
+  title: 'Página no encontrada | BloodConnect RD',
+  description: 'La página que buscas no existe o fue movida.',
+  robots: NOINDEX_NOFOLLOW,
+};
+
 export const PUBLIC_SITEMAP_PATHS: { path: string; changefreq: string; priority: string }[] = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
   { path: '/solicitudes', changefreq: 'daily', priority: '0.9' },

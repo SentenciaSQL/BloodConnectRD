@@ -11,6 +11,7 @@ import {
   PAGE_SEO,
   PRIVATE_SEO,
   PageSeo,
+  NOT_FOUND_SEO,
   REQUEST_UNAVAILABLE_SEO,
 } from './seo.config';
 import { FAQ_QUESTIONS, HOW_TO_STEPS } from './content';
@@ -96,6 +97,10 @@ export class SeoService {
 
   applyUnavailableRequest(path = '/solicitudes'): void {
     this.apply({ ...REQUEST_UNAVAILABLE_SEO, path });
+  }
+
+  applyNotFound(path: string): void {
+    this.apply({ ...NOT_FOUND_SEO, path });
   }
 
   setPageJsonLd(data: Record<string, unknown> | null): void {
