@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 sealed class AppException implements Exception {
   const AppException(this.message, {this.statusCode});
@@ -82,6 +83,8 @@ String _safeMessage(Object? data) {
 }
 
 String friendlyError(Object error) {
+  debugPrint('❌ ERROR REAL: $error');
+  debugPrint('❌ TIPO ERROR: ${error.runtimeType}');
   if (error is AppException) return error.message;
   return 'Ocurrió un error inesperado. Inténtalo de nuevo.';
 }
