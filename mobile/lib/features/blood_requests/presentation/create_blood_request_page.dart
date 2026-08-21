@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/constants/api_paths.dart';
 import '../../../core/errors/app_exception.dart';
@@ -222,11 +223,18 @@ class _CreateBloodRequestPageState
                     controller: _units,
                     label: 'Unidades',
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(2),
+                    ],
                     validator: (value) {
                       final units = int.tryParse(value ?? '');
-                      return units == null || units < 1
-                          ? 'Ingresa una cantidad válida'
-                          : null;
+
+                      if (units == null || units < 1 || units > 99) {
+                        return 'Ingresa una cantidad entre 1 y 99';
+                      }
+
+                      return null;
                     },
                   ),
                 ),

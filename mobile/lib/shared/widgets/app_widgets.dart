@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/networking/api_models.dart';
 import '../../core/utils/formatters.dart';
@@ -384,8 +385,10 @@ class AppTextField extends StatelessWidget {
     this.maxLines = 1,
     this.prefixIcon,
     this.enabled = true,
+    this.inputFormatters,
   });
 
+  final List<TextInputFormatter>? inputFormatters;
   final TextEditingController controller;
   final String label;
   final String? hint;
@@ -401,6 +404,7 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      inputFormatters: inputFormatters,
       enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
