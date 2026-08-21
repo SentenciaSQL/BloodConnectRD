@@ -35,6 +35,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Usamos tu ubicación solo cuando buscas solicitudes o centros cercanos.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Usamos tu ubicación para mostrar solicitudes y centros de donación cercanos.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
