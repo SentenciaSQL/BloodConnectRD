@@ -22,6 +22,8 @@ flutter pub get
 flutter run \
   --dart-define=API_BASE_URL=http://localhost:8080 \
   --dart-define=ENV=development
+  
+flutter build ipa --release --dart-define=API_BASE_URL=https://bloodconnectrd-production.up.railway.app
 ```
 
 ### Android (emulador)
@@ -31,6 +33,8 @@ flutter pub get
 flutter run \
   --dart-define=API_BASE_URL=http://10.0.2.2:8080 \
   --dart-define=ENV=development
+  
+flutter build appbundle --release --dart-define=API_BASE_URL=https://bloodconnectrd-production.up.railway.app
 ```
 
 ### iPhone / Android físico
