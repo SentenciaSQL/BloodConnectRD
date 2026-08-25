@@ -91,6 +91,24 @@ export class AuthService {
       );
   }
 
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${environment.apiBaseUrl}/auth/forgot-password`,
+      { email },
+    );
+  }
+
+  resetPassword(data: {
+    token: string;
+    password: string;
+    confirmPassword: string;
+  }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${environment.apiBaseUrl}/auth/reset-password`,
+      data,
+    );
+  }
+
   clearSession(): void {
     this.removeStorage(ACCESS_TOKEN_KEY);
     this.removeStorage(REFRESH_TOKEN_KEY);

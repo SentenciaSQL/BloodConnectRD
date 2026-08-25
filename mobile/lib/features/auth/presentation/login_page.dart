@@ -122,6 +122,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         child: const Text('¿No tienes cuenta? Regístrate'),
                       ),
                     ),
+                    Center(
+                      child: TextButton(
+                        onPressed: auth.isSubmitting
+                            ? null
+                            : () {
+                          ref
+                              .read(authControllerProvider.notifier)
+                              .clearError();
+
+                          context.go('/recuperar-contrasena');
+                        },
+                        child: const Text(
+                          '¿Olvidaste tu contraseña?',
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

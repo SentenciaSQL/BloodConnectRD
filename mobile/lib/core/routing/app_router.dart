@@ -18,6 +18,8 @@ import '../../features/home/presentation/home_shell_page.dart';
 import '../../features/messages/presentation/conversations_page.dart';
 import '../../features/notifications/presentation/notifications_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
+import '../../features/auth/presentation/forgot_password_page.dart';
+import '../../features/auth/presentation/reset_password_page.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -30,7 +32,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider);
       final location = state.matchedLocation;
-      final onAuthPage = location == '/login' || location == '/registro';
+      final onAuthPage =
+          location == '/login' ||
+              location == '/registro' ||
+              location == '/recuperar-contrasena' ||
+              location == '/reset-password';
       if (auth.isInitializing) {
         return location == '/cargando' ? null : '/cargando';
       }
@@ -49,6 +55,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/registro',
         builder: (context, state) => const RegisterPage(),
+      ),
+      GoRoute(
+        path: '/recuperar-contrasena',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          final token =
+              state.uri.queryParameters['token'] ?? '';
+
+          return ResetPasswordPage(token: token);
+        },
       ),
       GoRoute(
         path: '/notificaciones',

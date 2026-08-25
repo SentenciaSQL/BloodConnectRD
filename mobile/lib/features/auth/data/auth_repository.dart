@@ -69,6 +69,32 @@ class AuthRepository {
     }
   }
 
+  Future<void> forgotPassword({
+    required String email,
+  }) async {
+    await _api.post(
+      '${ApiPaths.auth}/forgot-password',
+      data: {
+        'email': email.trim(),
+      },
+    );
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    await _api.post(
+      '${ApiPaths.auth}/reset-password',
+      data: {
+        'token': token.trim(),
+        'password': password,
+        'confirmPassword': confirmPassword,
+      },
+    );
+  }
+
   Future<AuthTokens> _persistAuth(Object? response) async {
     final auth = AuthTokens.fromJson(asJson(response));
     await _storage.saveTokens(

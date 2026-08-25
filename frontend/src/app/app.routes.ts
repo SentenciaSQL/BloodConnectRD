@@ -26,6 +26,22 @@ export const routes: Routes = [
           import('./features/auth/auth.pages').then((component) => component.RegisterPage),
       },
       {
+        path: 'recuperar-contrasena',
+        canActivate: [guestGuard],
+        loadComponent: () =>
+          import('./features/auth/auth.pages').then(
+            (component) => component.ForgotPasswordPage,
+          ),
+      },
+      {
+        path: 'reset-password',
+        canActivate: [guestGuard],
+        loadComponent: () =>
+          import('./features/auth/auth.pages').then(
+            (component) => component.ResetPasswordPage,
+          ),
+      },
+      {
         path: 'donantes',
         loadComponent: () =>
           import('./features/donors/donors.page').then((component) => component.DonorsPage),

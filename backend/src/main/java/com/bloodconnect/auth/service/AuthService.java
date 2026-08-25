@@ -5,6 +5,8 @@ import com.bloodconnect.auth.dto.LoginRequest;
 import com.bloodconnect.auth.dto.MessageResponse;
 import com.bloodconnect.auth.dto.RefreshTokenRequest;
 import com.bloodconnect.auth.dto.RegisterRequest;
+import com.bloodconnect.auth.dto.ForgotPasswordRequest;
+import com.bloodconnect.auth.dto.ResetPasswordRequest;
 import com.bloodconnect.auth.entity.RefreshToken;
 import com.bloodconnect.common.enums.Role;
 import com.bloodconnect.common.util.PhoneNormalizer;
@@ -42,6 +44,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetService passwordResetService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -123,6 +126,48 @@ public class AuthService {
     @Transactional(readOnly = true)
     public UserResponse me(UserPrincipal principal) {
         return userMapper.toResponse(findUser(principal.getId()));
+    }
+
+    @Transactional
+    public MessageResponse forgotPassword(
+            ForgotPasswordRequest request
+    ) {
+        String email = normalizeEmail(request.email());
+
+        userRepository.findByEmail(email)
+                .filter(User::isEnabled)
+                .ifPresent(passwordResetService::createAndSend);
+
+        return new MessageResponse(
+                "Si existe una cuenta con ese correo, "
+                        + "recibirás instrucciones para restablecer la contraseña"
+        );
+    }
+
+    @Transactional
+    public MessageResponse resetPassword(
+            ResetPasswordRequest request
+    ) {
+        if (!request.password().equals(request.confirmPassword())) {
+            throw new BadRequestException(
+                    "Las contraseñas no coinciden"
+            );
+        }
+
+        User user = passwordResetService.consume(request.token());
+
+        user.setPassword(
+                passwordEncoder.encode(request.password())
+        );
+
+        userRepository.save(user);
+
+        // Cierra todas las sesiones activas del usuario
+        refreshTokenService.revokeAllForUser(user);
+
+        return new MessageResponse(
+                "Contraseña restablecida correctamente"
+        );
     }
 
     private AuthResponse createAuthResponse(User user, String refreshToken) {

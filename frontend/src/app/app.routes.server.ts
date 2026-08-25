@@ -20,6 +20,8 @@ export const serverRoutes: ServerRoute[] = [
   // Public but noindex
   { path: 'login', renderMode: RenderMode.Prerender, headers: noIndex },
   { path: 'registro', renderMode: RenderMode.Prerender, headers: noIndex },
+  { path: 'recuperar-contrasena', renderMode: RenderMode.Prerender, headers: noIndex },
+  { path: 'reset-password', renderMode: RenderMode.Client, headers: noIndex },
 
   // Private
   { path: 'dashboard', renderMode: RenderMode.Client, headers: noIndex },

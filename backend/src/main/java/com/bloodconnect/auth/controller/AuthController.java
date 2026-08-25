@@ -8,6 +8,8 @@ import com.bloodconnect.auth.dto.RegisterRequest;
 import com.bloodconnect.auth.service.AuthService;
 import com.bloodconnect.security.UserPrincipal;
 import com.bloodconnect.user.dto.UserResponse;
+import com.bloodconnect.auth.dto.ForgotPasswordRequest;
+import com.bloodconnect.auth.dto.ResetPasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -54,6 +56,26 @@ public class AuthController {
             @Valid @RequestBody(required = false) RefreshTokenRequest request
     ) {
         return ResponseEntity.ok(authService.logout(principal, request));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Solicitar recuperación de contraseña")
+    public ResponseEntity<MessageResponse> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request
+    ) {
+        return ResponseEntity.ok(
+                authService.forgotPassword(request)
+        );
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Restablecer la contraseña")
+    public ResponseEntity<MessageResponse> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        return ResponseEntity.ok(
+                authService.resetPassword(request)
+        );
     }
 
     @GetMapping("/me")

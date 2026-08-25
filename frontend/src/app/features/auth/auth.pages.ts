@@ -88,6 +88,14 @@ function normalizedPhone(value: string): string {
             ¿Todavía no tienes cuenta?
             <a routerLink="/registro" class="font-bold text-brand-700 hover:text-brand-900">Regístrate</a>
           </p>
+          <p class="mt-3 text-center text-sm">
+            <a
+              routerLink="/recuperar-contrasena"
+              class="font-bold text-brand-700 hover:text-brand-900"
+            >
+              ¿Olvidaste tu contraseña?
+            </a>
+          </p>
         </div>
       </div>
       <div
@@ -136,6 +144,315 @@ export class LoginPage {
       },
       complete: () => this.loading.set(false),
     });
+  }
+}
+
+@Component({
+  selector: 'app-forgot-password-page',
+  standalone: true,
+  imports: [ReactiveFormsModule, RouterLink],
+  template: `
+    <section class="bg-ink-50 px-5 py-14 sm:py-20">
+      <div
+        class="mx-auto max-w-lg rounded-3xl border border-ink-100
+               bg-white p-6 shadow-sm sm:p-10"
+      >
+        <p class="eyebrow">Recuperación de acceso</p>
+
+        <h1 class="font-display text-4xl font-semibold text-ink-950">
+          Recupera tu contraseña
+        </h1>
+
+        <p class="mt-3 text-sm leading-relaxed text-ink-600">
+          Escribe el correo asociado a tu cuenta. Te enviaremos
+          un enlace para crear una nueva contraseña.
+        </p>
+
+        @if (sent()) {
+          <div
+            class="mt-8 rounded-xl border border-emerald-200
+                   bg-emerald-50 p-4 text-sm text-emerald-900"
+          >
+            Si existe una cuenta con ese correo, recibirás las
+            instrucciones en unos minutos.
+          </div>
+        } @else {
+          <form
+            class="mt-8 grid gap-5"
+            [formGroup]="form"
+            (ngSubmit)="submit()"
+          >
+            <label>
+              <span class="form-label">Correo electrónico</span>
+
+              <input
+                type="email"
+                formControlName="email"
+                class="form-control"
+                autocomplete="email"
+                placeholder="nombre@correo.com"
+              />
+
+              @if (
+                form.controls.email.touched &&
+                form.controls.email.invalid
+              ) {
+                <span class="form-error">
+                  Escribe un correo electrónico válido.
+                </span>
+              }
+            </label>
+
+            @if (error()) {
+              <p
+                class="rounded-lg border border-brand-200
+                       bg-brand-50 p-3 text-sm text-brand-800"
+              >
+                {{ error() }}
+              </p>
+            }
+
+            <button
+              type="submit"
+              class="btn-primary w-full"
+              [disabled]="loading()"
+            >
+              {{
+                loading()
+                  ? 'Enviando…'
+                  : 'Enviar enlace de recuperación'
+              }}
+            </button>
+          </form>
+        }
+
+        <p class="mt-7 text-center text-sm text-ink-600">
+          <a
+            routerLink="/login"
+            class="font-bold text-brand-700 hover:text-brand-900"
+          >
+            Volver a iniciar sesión
+          </a>
+        </p>
+      </div>
+    </section>
+  `,
+})
+export class ForgotPasswordPage {
+  private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
+
+  readonly loading = signal(false);
+  readonly sent = signal(false);
+  readonly error = signal('');
+
+  readonly form = this.fb.nonNullable.group({
+    email: [
+      '',
+      [
+        Validators.required,
+        Validators.email,
+        Validators.maxLength(255),
+      ],
+    ],
+  });
+
+  submit(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set('');
+
+    this.auth
+      .forgotPassword(this.form.controls.email.value)
+      .subscribe({
+        next: () => this.sent.set(true),
+        error: (error) => {
+          this.loading.set(false);
+          this.error.set(apiErrorMessage(error));
+        },
+        complete: () => this.loading.set(false),
+      });
+  }
+}
+
+@Component({
+  selector: 'app-reset-password-page',
+  standalone: true,
+  imports: [ReactiveFormsModule, RouterLink],
+  template: `
+    <section class="bg-ink-50 px-5 py-14 sm:py-20">
+      <div
+        class="mx-auto max-w-lg rounded-3xl border border-ink-100
+               bg-white p-6 shadow-sm sm:p-10"
+      >
+        <p class="eyebrow">Nueva contraseña</p>
+
+        <h1 class="font-display text-4xl font-semibold text-ink-950">
+          Restablece tu contraseña
+        </h1>
+
+        @if (!token) {
+          <div
+            class="mt-7 rounded-xl border border-amber-200
+                   bg-amber-50 p-4 text-sm text-amber-900"
+          >
+            El enlace de recuperación no contiene un token válido.
+            Solicita uno nuevo.
+          </div>
+
+          <a
+            routerLink="/recuperar-contrasena"
+            class="btn-primary mt-6 w-full"
+          >
+            Solicitar otro enlace
+          </a>
+        } @else if (completed()) {
+          <div
+            class="mt-7 rounded-xl border border-emerald-200
+                   bg-emerald-50 p-4 text-sm text-emerald-900"
+          >
+            Tu contraseña fue restablecida correctamente.
+            Ya puedes iniciar sesión.
+          </div>
+
+          <a routerLink="/login" class="btn-primary mt-6 w-full">
+            Iniciar sesión
+          </a>
+        } @else {
+          <p class="mt-3 text-sm leading-relaxed text-ink-600">
+            Crea una contraseña segura de al menos 8 caracteres.
+          </p>
+
+          <form
+            class="mt-8 grid gap-5"
+            [formGroup]="form"
+            (ngSubmit)="submit()"
+          >
+            <label>
+              <span class="form-label">Nueva contraseña</span>
+
+              <input
+                type="password"
+                formControlName="password"
+                class="form-control"
+                autocomplete="new-password"
+                placeholder="Mínimo 8 caracteres"
+              />
+
+              @if (
+                form.controls.password.touched &&
+                form.controls.password.invalid
+              ) {
+                <span class="form-error">
+                  Debe tener entre 8 y 72 caracteres.
+                </span>
+              }
+            </label>
+
+            <label>
+              <span class="form-label">Confirmar contraseña</span>
+
+              <input
+                type="password"
+                formControlName="confirmPassword"
+                class="form-control"
+                autocomplete="new-password"
+              />
+
+              @if (
+                form.controls.confirmPassword.touched &&
+                (
+                  form.controls.confirmPassword.invalid ||
+                  form.hasError('passwordsMismatch')
+                )
+              ) {
+                <span class="form-error">
+                  Las contraseñas deben coincidir.
+                </span>
+              }
+            </label>
+
+            @if (error()) {
+              <p
+                class="rounded-lg border border-brand-200
+                       bg-brand-50 p-3 text-sm text-brand-800"
+              >
+                {{ error() }}
+              </p>
+            }
+
+            <button
+              type="submit"
+              class="btn-primary w-full"
+              [disabled]="loading()"
+            >
+              {{
+                loading()
+                  ? 'Guardando…'
+                  : 'Cambiar contraseña'
+              }}
+            </button>
+          </form>
+        }
+      </div>
+    </section>
+  `,
+})
+export class ResetPasswordPage {
+  private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+
+  readonly token =
+    this.route.snapshot.queryParamMap.get('token')?.trim() ?? '';
+
+  readonly loading = signal(false);
+  readonly completed = signal(false);
+  readonly error = signal('');
+
+  readonly form = this.fb.nonNullable.group(
+    {
+      password: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(8),
+          Validators.maxLength(72),
+        ],
+      ],
+      confirmPassword: ['', Validators.required],
+    },
+    {
+      validators: matchingPasswords,
+    },
+  );
+
+  submit(): void {
+    if (!this.token || this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set('');
+
+    this.auth
+      .resetPassword({
+        token: this.token,
+        ...this.form.getRawValue(),
+      })
+      .subscribe({
+        next: () => this.completed.set(true),
+        error: (error) => {
+          this.loading.set(false);
+          this.error.set(apiErrorMessage(error));
+        },
+        complete: () => this.loading.set(false),
+      });
   }
 }
 
