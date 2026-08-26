@@ -103,10 +103,10 @@ class AuthInterceptor extends QueuedInterceptor {
     final alreadyRetried = options.extra['authRetried'] == true;
     final isAuthEntryPoint =
         options.path == '${ApiPaths.auth}/login' ||
-            options.path == '${ApiPaths.auth}/register' ||
-            options.path == '${ApiPaths.auth}/refresh' ||
-            options.path == '${ApiPaths.auth}/forgot-password' ||
-            options.path == '${ApiPaths.auth}/reset-password';
+        options.path == '${ApiPaths.auth}/register' ||
+        options.path == '${ApiPaths.auth}/refresh' ||
+        options.path == '${ApiPaths.auth}/forgot-password' ||
+        options.path == '${ApiPaths.auth}/reset-password';
 
     if (!isUnauthorized || alreadyRetried || isAuthEntryPoint) {
       handler.next(err);

@@ -147,9 +147,7 @@ class RequestProgressBar extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      ColoredBox(
-                        color: colors.primary.withValues(alpha: 0.16),
-                      ),
+                      ColoredBox(color: colors.primary.withValues(alpha: 0.16)),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: FractionallySizedBox(
@@ -182,9 +180,9 @@ class RequestProgressBar extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           request.progressLabel,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -206,17 +204,25 @@ class DonationCard extends StatelessWidget {
         children: [
           Text(
             donation.statusLabel,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
-          if (donation.patientName != null && donation.patientName!.isNotEmpty) ...[
-            _IconText(Icons.assignment_outlined, 'Solicitud: ${donation.patientName}'),
+          if (donation.patientName != null &&
+              donation.patientName!.isNotEmpty) ...[
+            _IconText(
+              Icons.assignment_outlined,
+              'Solicitud: ${donation.patientName}',
+            ),
             const SizedBox(height: 4),
           ],
-          if (donation.receiverName != null && donation.receiverName!.isNotEmpty) ...[
-            _IconText(Icons.favorite_outline, 'Receptor: ${donation.receiverName}'),
+          if (donation.receiverName != null &&
+              donation.receiverName!.isNotEmpty) ...[
+            _IconText(
+              Icons.favorite_outline,
+              'Receptor: ${donation.receiverName}',
+            ),
             const SizedBox(height: 4),
           ],
           if ((donation.hospital != null && donation.hospital!.isNotEmpty) ||
@@ -240,9 +246,7 @@ class DonationCard extends StatelessWidget {
       ),
     );
     return Card(
-      child: onTap == null
-          ? child
-          : InkWell(onTap: onTap, child: child),
+      child: onTap == null ? child : InkWell(onTap: onTap, child: child),
     );
   }
 }

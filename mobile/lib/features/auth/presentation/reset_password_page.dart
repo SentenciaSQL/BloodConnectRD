@@ -7,20 +7,15 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../data/auth_repository.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
-  const ResetPasswordPage({
-    super.key,
-    required this.token,
-  });
+  const ResetPasswordPage({super.key, required this.token});
 
   final String token;
 
   @override
-  ConsumerState<ResetPasswordPage> createState() =>
-      _ResetPasswordPageState();
+  ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();
 }
 
-class _ResetPasswordPageState
-    extends ConsumerState<ResetPasswordPage> {
+class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
@@ -47,11 +42,13 @@ class _ResetPasswordPageState
     });
 
     try {
-      await ref.read(authRepositoryProvider).resetPassword(
-        token: widget.token,
-        password: _password.text,
-        confirmPassword: _confirmPassword.text,
-      );
+      await ref
+          .read(authRepositoryProvider)
+          .resetPassword(
+            token: widget.token,
+            password: _password.text,
+            confirmPassword: _confirmPassword.text,
+          );
 
       if (!mounted) return;
 
@@ -74,9 +71,7 @@ class _ResetPasswordPageState
     final missingToken = widget.token.trim().isEmpty;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nueva contraseña'),
-      ),
+      appBar: AppBar(title: const Text('Nueva contraseña')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -109,14 +104,12 @@ class _ResetPasswordPageState
           const SizedBox(height: 12),
           Text(
             'Crea una nueva contraseña',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'La contraseña debe tener al menos 8 caracteres.',
-          ),
+          const Text('La contraseña debe tener al menos 8 caracteres.'),
           const SizedBox(height: 28),
           AppTextField(
             controller: _password,
@@ -165,9 +158,7 @@ class _ResetPasswordPageState
             const SizedBox(height: 12),
             Text(
               _errorMessage!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
           const SizedBox(height: 20),
@@ -192,9 +183,9 @@ class _ResetPasswordPageState
         const SizedBox(height: 20),
         Text(
           'Contraseña actualizada',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -221,14 +212,14 @@ class _ResetPasswordPageState
         const SizedBox(height: 20),
         Text(
           'Enlace no válido',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 12),
         const Text(
           'El enlace no contiene un token válido. '
-              'Solicita un nuevo enlace de recuperación.',
+          'Solicita un nuevo enlace de recuperación.',
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),

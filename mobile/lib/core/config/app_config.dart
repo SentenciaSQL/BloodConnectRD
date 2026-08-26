@@ -3,10 +3,7 @@ import 'dart:io';
 enum AppEnvironment { development, staging, production }
 
 class AppConfig {
-  const AppConfig({
-    required this.environment,
-    required this.apiBaseUrl,
-  });
+  const AppConfig({required this.environment, required this.apiBaseUrl});
 
   final AppEnvironment environment;
   final String apiBaseUrl;
@@ -41,9 +38,6 @@ class AppConfig {
         ? defaultLocalApiBaseUrl
         : apiUrlDefine.trim();
 
-    return AppConfig(
-      environment: environment,
-      apiBaseUrl: apiUrl,
-    );
+    return AppConfig(environment: environment, apiBaseUrl: apiUrl);
   }
 }

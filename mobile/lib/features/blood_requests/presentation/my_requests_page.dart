@@ -11,15 +11,11 @@ class MyRequestsPage extends ConsumerStatefulWidget {
   const MyRequestsPage({super.key});
 
   @override
-  ConsumerState<MyRequestsPage> createState() =>
-      _MyRequestsPageState();
+  ConsumerState<MyRequestsPage> createState() => _MyRequestsPageState();
 }
 
-class _MyRequestsPageState
-    extends ConsumerState<MyRequestsPage> {
-  Future<void> _confirmDelete(
-      BloodRequestModel request,
-      ) async {
+class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
+  Future<void> _confirmDelete(BloodRequestModel request) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -27,7 +23,7 @@ class _MyRequestsPageState
           title: const Text('Eliminar solicitud'),
           content: Text(
             '¿Deseas eliminar la solicitud de '
-                '${request.patientName}?',
+            '${request.patientName}?',
           ),
           actions: [
             TextButton(
@@ -38,8 +34,7 @@ class _MyRequestsPageState
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor:
-                Theme.of(context).colorScheme.error,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
@@ -56,25 +51,16 @@ class _MyRequestsPageState
     }
 
     try {
-      await ref
-          .read(bloodRequestRepositoryProvider)
-          .delete(request.id);
+      await ref.read(bloodRequestRepositoryProvider).delete(request.id);
 
-      invalidateBloodRequestCaches(
-        ref,
-        requestId: request.id,
-      );
+      invalidateBloodRequestCaches(ref, requestId: request.id);
 
       if (!mounted) {
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Solicitud eliminada correctamente',
-          ),
-        ),
+        const SnackBar(content: Text('Solicitud eliminada correctamente')),
       );
     } catch (error) {
       if (!mounted) {
@@ -84,16 +70,14 @@ class _MyRequestsPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(friendlyError(error)),
-          backgroundColor:
-          Theme.of(context).colorScheme.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
   }
 
   bool _canModify(BloodRequestModel request) {
-    return request.status == 'OPEN' ||
-        request.status == 'IN_PROGRESS';
+    return request.status == 'OPEN' || request.status == 'IN_PROGRESS';
   }
 
   @override
@@ -101,9 +85,7 @@ class _MyRequestsPageState
     final requests = ref.watch(myRequestsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis solicitudes'),
-      ),
+      appBar: AppBar(title: const Text('Mis solicitudes')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           context.push('/crear-solicitud');
@@ -122,8 +104,7 @@ class _MyRequestsPageState
         data: (items) {
           final activeItems = items.where((request) {
             final hasActiveStatus =
-                request.status == 'OPEN' ||
-                    request.status == 'IN_PROGRESS';
+                request.status == 'OPEN' || request.status == 'IN_PROGRESS';
 
             return !request.isExpired && hasActiveStatus;
           }).toList();
@@ -132,7 +113,7 @@ class _MyRequestsPageState
             return const EmptyState(
               title: 'Aún no tienes solicitudes activas',
               message:
-              'Publica un caso cuando necesites apoyo '
+                  'Publica un caso cuando necesites apoyo '
                   'de donantes.',
               icon: Icons.bloodtype_outlined,
             );
@@ -144,46 +125,36 @@ class _MyRequestsPageState
               await ref.read(myRequestsProvider.future);
             },
             child: ListView.separated(
-              physics:
-              const AlwaysScrollableScrollPhysics(),
-              padding:
-              const EdgeInsets.fromLTRB(16, 12, 16, 100),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
               itemCount: activeItems.length,
-              separatorBuilder: (_, _) =>
-              const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final request = activeItems[index];
 
                 return Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     RequestCard(
                       request: request,
                       onTap: () {
-                        context.push(
-                          '/detalle-solicitud/${request.id}',
-                        );
+                        context.push('/detalle-solicitud/${request.id}');
                       },
                     ),
                     if (_canModify(request)) ...[
                       const SizedBox(height: 4),
                       Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton.icon(
                             onPressed: () {
                               context.push(
                                 '/editar-solicitud/'
-                                    '${request.id}',
+                                '${request.id}',
                               );
                             },
-                            icon: const Icon(
-                              Icons.edit_outlined,
-                            ),
-                            label:
-                            const Text('Actualizar'),
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Actualizar'),
                           ),
                           const SizedBox(width: 8),
                           TextButton.icon(
@@ -191,14 +162,11 @@ class _MyRequestsPageState
                               _confirmDelete(request);
                             },
                             style: TextButton.styleFrom(
-                              foregroundColor:
-                              Theme.of(context)
-                                  .colorScheme
-                                  .error,
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.error,
                             ),
-                            icon: const Icon(
-                              Icons.delete_outline,
-                            ),
+                            icon: const Icon(Icons.delete_outline),
                             label: const Text('Eliminar'),
                           ),
                         ],

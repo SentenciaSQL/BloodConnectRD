@@ -49,9 +49,7 @@ class AuthRepository {
   Future<String> resendVerification(String email) async {
     final response = await _api.post(
       '${ApiPaths.auth}/resend-verification',
-      data: {
-        'email': email.trim(),
-      },
+      data: {'email': email.trim()},
     );
 
     return asJson(response)['message']?.toString() ??
@@ -83,14 +81,10 @@ class AuthRepository {
     }
   }
 
-  Future<void> forgotPassword({
-    required String email,
-  }) async {
+  Future<void> forgotPassword({required String email}) async {
     await _api.post(
       '${ApiPaths.auth}/forgot-password',
-      data: {
-        'email': email.trim(),
-      },
+      data: {'email': email.trim()},
     );
   }
 

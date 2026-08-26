@@ -113,9 +113,7 @@ class _BloodRequestsPageState extends ConsumerState<BloodRequestsPage> {
                     itemBuilder: (context, index) => RequestCard(
                       request: items[index],
                       onTap: () =>
-                          context.push(
-                            '/detalle-solicitud/${items[index].id}',
-                          ),
+                          context.push('/detalle-solicitud/${items[index].id}'),
                     ),
                   ),
                 );

@@ -47,9 +47,7 @@ class NotificationsPage extends ConsumerWidget {
       context.push('/mensajes/${item.resourceId}');
       return;
     }
-    if (item.resourceType == 'BLOOD_REQUEST' && item.resourceId != null) {
-      context.push('/solicitudes/${item.resourceId}');
-    }
+    context.push('/detalle-solicitud/${item.resourceId}');
   }
 
   @override
