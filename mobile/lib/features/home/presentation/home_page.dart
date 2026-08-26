@@ -187,7 +187,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _QuickAction(
                   icon: Icons.add_circle_outline,
                   label: 'Crear solicitud',
-                  onTap: () => context.push('/solicitudes/crear'),
+                  onTap: () => context.push('/crear-solicitud'),
                 ),
                 _QuickAction(
                   icon: Icons.assignment_outlined,

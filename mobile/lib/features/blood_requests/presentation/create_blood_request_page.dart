@@ -13,7 +13,11 @@ import '../../locations/data/location_repository.dart';
 import '../data/blood_request_repository.dart';
 
 class CreateBloodRequestPage extends ConsumerStatefulWidget {
-  const CreateBloodRequestPage({super.key});
+  const CreateBloodRequestPage({ super.key, this.requestId });
+
+  final int? requestId;
+
+  bool get isEditing => requestId != null;
 
   @override
   ConsumerState<CreateBloodRequestPage> createState() =>
@@ -41,6 +45,69 @@ class _CreateBloodRequestPageState
   double? _longitude;
   bool _submitting = false;
   bool _locating = false;
+  bool _loadingRequest = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.isEditing) {
+      _loadRequest();
+    }
+  }
+
+  Future<void> _loadRequest() async {
+    setState(() {
+      _loadingRequest = true;
+    });
+
+    try {
+      final request = await ref
+          .read(bloodRequestRepositoryProvider)
+          .get(widget.requestId!);
+
+      if (!mounted) {
+        return;
+      }
+
+      _patient.text = request.patientName;
+      _units.text = request.unitsRequired.toString();
+      _hospital.text = request.hospital;
+      _sector.text = request.sector ?? '';
+      _address.text = request.address;
+      _reference.text = request.reference ?? '';
+      _description.text = request.description;
+      _phone.text = request.contactPhone;
+
+      setState(() {
+        _bloodType = request.bloodType;
+        _urgency = request.urgency;
+        _provinceId = request.provinceId;
+        _municipalityId = request.municipalityId;
+        _deadline = request.deadline?.toLocal();
+        _latitude = request.latitude;
+        _longitude = request.longitude;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(friendlyError(error)),
+        ),
+      );
+
+      context.pop();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingRequest = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -126,47 +193,117 @@ class _CreateBloodRequestPageState
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     if (_bloodType == null ||
         _provinceId == null ||
         _municipalityId == null ||
         _deadline == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Completa todos los campos obligatorios.'),
+          content: Text(
+            'Completa todos los campos obligatorios.',
+          ),
         ),
       );
+
       return;
     }
-    setState(() => _submitting = true);
+
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _submitting = true;
+    });
+
+    final payload = <String, dynamic>{
+      'patientName': _patient.text.trim(),
+      'bloodType': _bloodType,
+      'unitsRequired': int.parse(
+        _units.text,
+      ),
+      'hospital': _hospital.text.trim(),
+      'provinceId': _provinceId,
+      'municipalityId': _municipalityId,
+      'sector': _optional(_sector.text),
+      'address': _address.text.trim(),
+      'reference': _optional(
+        _reference.text,
+      ),
+      'latitude': _latitude,
+      'longitude': _longitude,
+      'deadline': _deadline!
+          .toUtc()
+          .toIso8601String(),
+      'description': _optional(
+        _description.text,
+      ),
+      'contactPhone': _phone.text.trim(),
+      'urgency': _urgency,
+    };
+
     try {
-      final request = await ref.read(bloodRequestRepositoryProvider).create({
-        'patientName': _patient.text.trim(),
-        'bloodType': _bloodType,
-        'unitsRequired': int.parse(_units.text),
-        'hospital': _hospital.text.trim(),
-        'provinceId': _provinceId,
-        'municipalityId': _municipalityId,
-        'sector': _optional(_sector.text),
-        'address': _address.text.trim(),
-        'reference': _optional(_reference.text),
-        'latitude': _latitude,
-        'longitude': _longitude,
-        'deadline': _deadline!.toUtc().toIso8601String(),
-        'description': _optional(_description.text),
-        'contactPhone': _phone.text.trim(),
-        'urgency': _urgency,
-      });
-      ref.invalidate(bloodRequestsProvider);
-      if (mounted) context.go('/solicitudes/${request.id}');
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(friendlyError(error))));
+      final repository = ref.read(
+        bloodRequestRepositoryProvider,
+      );
+
+      final BloodRequestModel request;
+
+      if (widget.requestId != null) {
+        request = await repository.update(
+          widget.requestId!,
+          payload,
+        );
+      } else {
+        request = await repository.create(
+          payload,
+        );
       }
+
+      invalidateBloodRequestCaches(
+        ref,
+        requestId: request.id,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.requestId != null
+                ? 'La solicitud fue actualizada.'
+                : 'La solicitud fue creada.',
+          ),
+        ),
+      );
+
+      if (widget.isEditing) {
+        context.go(
+          '/detalle-solicitud/${request.id}',
+        );
+      } else {
+        context.go(
+          '/detalle-solicitud/${request.id}',
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            friendlyError(error),
+          ),
+        ),
+      );
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
     }
   }
 
@@ -177,12 +314,29 @@ class _CreateBloodRequestPageState
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingRequest) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Actualizar solicitud',
+          ),
+        ),
+        body: const LoadingView(),
+      );
+    }
+
     final provinces = ref.watch(provincesProvider);
     final municipalities = _provinceId == null
         ? const AsyncValue<List<Municipality>>.data([])
         : ref.watch(municipalitiesProvider(_provinceId!));
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear solicitud')),
+      appBar: AppBar(
+        title: Text(
+          widget.isEditing
+              ? 'Actualizar solicitud'
+              : 'Crear solicitud',
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -372,7 +526,9 @@ class _CreateBloodRequestPageState
             ),
             const SizedBox(height: 24),
             PrimaryButton(
-              label: 'Publicar solicitud',
+              label: widget.isEditing
+                  ? 'Guardar cambios'
+                  : 'Publicar solicitud',
               isLoading: _submitting,
               onPressed: _submit,
             ),

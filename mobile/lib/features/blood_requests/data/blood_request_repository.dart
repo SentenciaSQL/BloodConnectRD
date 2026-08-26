@@ -75,28 +75,66 @@ class BloodRequestRepository {
 
   final ApiClient _api;
 
-  Future<List<BloodRequestModel>> list(BloodRequestFilters filters) async {
+  List<BloodRequestModel> _removeExpired(
+      Iterable<BloodRequestModel> requests,
+      ) {
+    return requests.where((request) {
+      final deadline = request.deadline;
+
+      if (deadline == null) return true;
+
+      return deadline.isAfter(DateTime.now());
+    }).toList();
+  }
+
+  Future<List<BloodRequestModel>> list(
+      BloodRequestFilters filters,
+      ) async {
     final response = await _api.get(
       ApiPaths.bloodRequests,
       queryParameters: filters.toQuery(),
     );
-    return pageContent(response).map(BloodRequestModel.fromJson).toList();
+
+    final requests = pageContent(response)
+        .map(BloodRequestModel.fromJson);
+
+    return _removeExpired(requests);
   }
 
-  Future<List<BloodRequestModel>> urgent({int size = 5}) async {
+  Future<List<BloodRequestModel>> urgent({
+    int size = 5,
+  }) async {
     final response = await _api.get(
       '${ApiPaths.bloodRequests}/urgent',
-      queryParameters: {'size': size, 'sort': 'urgency', 'direction': 'desc'},
+      queryParameters: {
+        'size': size,
+        'sort': 'urgency',
+        'direction': 'desc',
+      },
     );
-    return pageContent(response).map(BloodRequestModel.fromJson).toList();
+
+    final requests = pageContent(response)
+        .map(BloodRequestModel.fromJson);
+
+    return _removeExpired(requests);
   }
 
-  Future<List<BloodRequestModel>> compatible({int size = 5}) async {
+  Future<List<BloodRequestModel>> compatible({
+    int size = 5,
+  }) async {
     final response = await _api.get(
       '${ApiPaths.bloodRequests}/compatible',
-      queryParameters: {'size': size, 'sort': 'urgency', 'direction': 'desc'},
+      queryParameters: {
+        'size': size,
+        'sort': 'urgency',
+        'direction': 'desc',
+      },
     );
-    return pageContent(response).map(BloodRequestModel.fromJson).toList();
+
+    final requests = pageContent(response)
+        .map(BloodRequestModel.fromJson);
+
+    return _removeExpired(requests);
   }
 
   Future<List<BloodRequestModel>> nearby({
@@ -112,7 +150,31 @@ class BloodRequestRepository {
         'radius': radius,
       },
     );
-    return asJsonList(response).map(BloodRequestModel.fromJson).toList();
+
+    final requests = asJsonList(response)
+        .map(BloodRequestModel.fromJson);
+
+    return _removeExpired(requests);
+  }
+
+  Future<BloodRequestModel> update(
+      int requestId,
+      Map<String, dynamic> payload,
+      ) async {
+    final response = await _api.put(
+      '${ApiPaths.bloodRequests}/$requestId',
+      data: payload,
+    );
+
+    return BloodRequestModel.fromJson(
+      asJson(response),
+    );
+  }
+
+  Future<void> delete(int requestId) async {
+    await _api.delete(
+      '${ApiPaths.bloodRequests}/$requestId',
+    );
   }
 
   Future<BloodRequestModel> get(int id) async {
@@ -120,17 +182,33 @@ class BloodRequestRepository {
     return BloodRequestModel.fromJson(asJson(response));
   }
 
-  Future<BloodRequestModel> create(Map<String, dynamic> payload) async {
-    final response = await _api.post(ApiPaths.bloodRequests, data: payload);
-    return BloodRequestModel.fromJson(asJson(response));
+  Future<BloodRequestModel> create(
+      Map<String, dynamic> payload,
+      ) async {
+    final response = await _api.post(
+      ApiPaths.bloodRequests,
+      data: payload,
+    );
+
+    return BloodRequestModel.fromJson(
+      asJson(response),
+    );
   }
 
-  Future<DonationResponseModel> offerHelp(int requestId, {String? message}) async {
+  Future<DonationResponseModel> offerHelp(
+      int requestId, {
+        String? message,
+      }) async {
     final response = await _api.post(
       '${ApiPaths.bloodRequests}/$requestId/responses',
-      data: {'message': message},
+      data: {
+        'message': message,
+      },
     );
-    return DonationResponseModel.fromJson(asJson(response));
+
+    return DonationResponseModel.fromJson(
+      asJson(response),
+    );
   }
 
   Future<List<DonationResponseModel>> responses(int requestId) async {
@@ -143,12 +221,29 @@ class BloodRequestRepository {
     return asJsonList(response).map(DonationModel.fromJson).toList();
   }
 
-  Future<List<BloodRequestModel>> mine({int size = 50}) async {
+  Future<List<BloodRequestModel>> mine({
+    int size = 50,
+  }) async {
     final response = await _api.get(
       '${ApiPaths.bloodRequests}/my',
-      queryParameters: {'page': 0, 'size': size, 'sort': 'createdAt', 'direction': 'desc'},
+      queryParameters: {
+        'page': 0,
+        'size': size,
+        'sort': 'createdAt',
+        'direction': 'desc',
+      },
     );
-    return pageContent(response).map(BloodRequestModel.fromJson).toList();
+
+    final requests = pageContent(response)
+        .map(BloodRequestModel.fromJson);
+
+    return requests.where((request) {
+      final hasActiveStatus =
+          request.status == 'OPEN' ||
+              request.status == 'IN_PROGRESS';
+
+      return !request.isExpired && hasActiveStatus;
+    }).toList();
   }
 
   Future<DonationModel> reportDonation(

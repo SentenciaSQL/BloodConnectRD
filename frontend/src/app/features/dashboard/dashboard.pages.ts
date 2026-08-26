@@ -461,7 +461,13 @@ export class ProfilePage implements OnInit {
         <h1 class="font-display text-4xl font-semibold text-ink-950">Mis solicitudes</h1>
         <p class="mt-2 text-ink-600">Crea y administra solicitudes de sangre.</p>
       </div>
-      <button type="button" class="btn-primary" (click)="modalOpen.set(true)">+ Nueva solicitud</button>
+      <button
+        type="button"
+        class="btn-primary"
+        (click)="openCreate()"
+      >
+        + Nueva solicitud
+      </button>
     </header>
 
     @if (loading()) {
@@ -491,10 +497,26 @@ export class ProfilePage implements OnInit {
                   {{ request.municipalityName }} · vence {{ request.deadline | date: 'mediumDate' }}
                 </p>
               </div>
-              <div class="flex gap-2">
-                <a [routerLink]="['/solicitudes', requestSlug(request)]" class="btn-secondary">Ver</a>
+              <div class="flex flex-wrap gap-2">
+                <a
+                  [routerLink]="['/solicitudes', requestSlug(request)]"
+                  class="btn-secondary"
+                >
+                  Ver
+                </a>
                 @if (request.status === 'OPEN' || request.status === 'IN_PROGRESS') {
-                  <button type="button" class="btn-secondary !text-brand-700" (click)="cancel(request)">
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    (click)="openEdit(request)"
+                  >
+                    Actualizar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-secondary !text-brand-700"
+                    (click)="cancel(request)"
+                  >
                     Cancelar
                   </button>
                 }
@@ -524,13 +546,19 @@ export class ProfilePage implements OnInit {
           title="No has creado solicitudes"
           message="Publica un caso con la información del centro de salud y un contacto válido."
         >
-          <button type="button" class="btn-primary" (click)="modalOpen.set(true)">Crear solicitud</button>
+          <button type="button" class="btn-primary" (click)="openCreate()">Crear solicitud</button>
         </app-empty-state>
       </div>
     }
 
-    <app-modal [open]="modalOpen()" title="Nueva solicitud de sangre" (closed)="modalOpen.set(false)">
-      <form class="grid gap-4 sm:grid-cols-2" [formGroup]="form" (ngSubmit)="create()">
+    <app-modal
+      [open]="modalOpen()"
+      [title]="editingRequest() ? 'Actualizar solicitud de sangre': 'Nueva solicitud de sangre'" (closed)="closeModal()">
+      <form
+        class="grid gap-4 sm:grid-cols-2"
+        [formGroup]="form"
+        (ngSubmit)="save()"
+      >
         <label class="sm:col-span-2">
           <span class="form-label">Nombre del paciente</span>
           <input formControlName="patientName" class="form-control" />
@@ -606,8 +634,24 @@ export class ProfilePage implements OnInit {
           <span class="form-label">Descripción</span>
           <textarea formControlName="description" rows="3" class="form-control"></textarea>
         </label>
-        <button type="submit" class="btn-primary sm:col-span-2" [disabled]="saving()">
-          {{ saving() ? 'Publicando…' : 'Publicar solicitud' }}
+        <button
+          type="submit"
+          class="btn-primary sm:col-span-2"
+          [disabled]="saving()"
+        >
+          @if (saving()) {
+            {{
+              editingRequest()
+                ? 'Actualizando…'
+                : 'Publicando…'
+            }}
+          } @else {
+            {{
+              editingRequest()
+                ? 'Guardar cambios'
+                : 'Publicar solicitud'
+            }}
+          }
         </button>
       </form>
     </app-modal>
@@ -625,6 +669,7 @@ export class MyRequestsPage implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly modalOpen = signal(false);
+  readonly editingRequest = signal<BloodRequest | null>(null);
   readonly statusLabels: Record<string, string> = {
     OPEN: 'Abierta',
     IN_PROGRESS: 'En progreso',
@@ -684,55 +729,77 @@ export class MyRequestsPage implements OnInit {
     });
   }
 
-  create(): void {
+  save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.error('Completa los campos obligatorios.');
+
+      this.toast.error(
+        'Completa los campos obligatorios.',
+      );
+
       return;
     }
+
     const value = this.form.getRawValue();
+
     const payload: BloodRequestPayload = {
       patientName: value.patientName,
       bloodType: value.bloodType as BloodType,
       unitsRequired: value.unitsRequired,
       hospital: value.hospital,
       provinceId: Number(value.provinceId),
-      municipalityId: Number(value.municipalityId),
+      municipalityId: Number(
+        value.municipalityId,
+      ),
       sector: value.sector || undefined,
       address: value.address,
       reference: value.reference || undefined,
-      deadline: new Date(value.deadline).toISOString(),
-      description: value.description || undefined,
-      contactPhone: normalizePhone(value.contactPhone),
+      deadline: new Date(
+        value.deadline,
+      ).toISOString(),
+      description:
+        value.description || undefined,
+      contactPhone: normalizePhone(
+        value.contactPhone,
+      ),
       urgency: value.urgency as Urgency,
     };
+
+    const editing = this.editingRequest();
+
+    const operation = editing
+      ? this.api.updateRequest(
+        editing.id,
+        payload,
+      )
+      : this.api.createRequest(payload);
+
     this.saving.set(true);
-    this.api.createRequest(payload).subscribe({
+
+    operation.subscribe({
       next: () => {
-        this.toast.success('La solicitud fue publicada.');
-        this.modalOpen.set(false);
-        this.form.reset({
-          patientName: '',
-          bloodType: '',
-          unitsRequired: 1,
-          hospital: '',
-          provinceId: '',
-          municipalityId: '',
-          sector: '',
-          address: '',
-          reference: '',
-          deadline: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 16),
-          description: '',
-          contactPhone: '',
-          urgency: 'HIGH',
-        });
-        this.load();
+        this.toast.success(
+          editing
+            ? 'La solicitud fue actualizada.'
+            : 'La solicitud fue publicada.',
+        );
+
+        this.closeModal();
+
+        this.load(
+          this.page()?.page ?? 0,
+        );
       },
       error: (error) => {
         this.saving.set(false);
-        this.toast.error(apiErrorMessage(error));
+
+        this.toast.error(
+          apiErrorMessage(error),
+        );
       },
-      complete: () => this.saving.set(false),
+      complete: () => {
+        this.saving.set(false);
+      },
     });
   }
 
@@ -750,6 +817,92 @@ export class MyRequestsPage implements OnInit {
   progressPercent(request: BloodRequest): number {
     return requestProgressPercent(request);
   }
+
+  openCreate(): void {
+    this.editingRequest.set(null);
+    this.municipalities.set([]);
+    this.resetForm();
+    this.modalOpen.set(true);
+  }
+
+  openEdit(request: BloodRequest): void {
+    this.editingRequest.set(request);
+    this.modalOpen.set(true);
+
+    this.form.patchValue({
+      patientName: request.patientName,
+      bloodType: request.bloodType,
+      unitsRequired: request.unitsRequired,
+      hospital: request.hospital,
+      provinceId: String(request.provinceId),
+      municipalityId: '',
+      sector: request.sector ?? '',
+      address: request.address,
+      reference: request.reference ?? '',
+      deadline: this.toDateTimeLocal(
+        request.deadline,
+      ),
+      description: request.description ?? '',
+      contactPhone: request.contactPhone,
+      urgency: request.urgency,
+    });
+
+    this.api
+      .municipalities(request.provinceId)
+      .subscribe({
+        next: (municipalities) => {
+          this.municipalities.set(municipalities);
+
+          this.form.controls.municipalityId.setValue(
+            String(request.municipalityId),
+          );
+        },
+        error: () => {
+          this.toast.error(
+            'No pudimos cargar los municipios.',
+          );
+        },
+      });
+  }
+
+  private resetForm(): void {
+    this.form.reset({
+      patientName: '',
+      bloodType: '',
+      unitsRequired: 1,
+      hospital: '',
+      provinceId: '',
+      municipalityId: '',
+      sector: '',
+      address: '',
+      reference: '',
+      deadline: new Date(
+        Date.now() + 3 * 86400000,
+      )
+        .toISOString()
+        .slice(0, 16),
+      description: '',
+      contactPhone: '',
+      urgency: 'HIGH',
+    });
+  }
+
+  closeModal(): void {
+    this.modalOpen.set(false);
+    this.editingRequest.set(null);
+    this.municipalities.set([]);
+    this.resetForm();
+  }
+
+  private toDateTimeLocal(value: string): string {
+    const date = new Date(value);
+
+    const offset = date.getTimezoneOffset() * 60000;
+
+    return new Date(date.getTime() - offset)
+      .toISOString()
+      .slice(0, 16);
+  }
 }
 
 @Component({
@@ -760,7 +913,7 @@ export class MyRequestsPage implements OnInit {
     <header>
       <p class="eyebrow">Historial</p>
       <h1 class="font-display text-4xl font-semibold text-ink-950">Mis donaciones</h1>
-        <p class="mt-2 text-ink-600">Consulta las donaciones que has reportado y su estado de confirmación.</p>
+      <p class="mt-2 text-ink-600">Consulta las donaciones que has reportado y su estado de confirmación.</p>
     </header>
 
     @if (loading()) {
@@ -915,9 +1068,9 @@ export class NotificationsPage implements OnInit {
         this.page.update((page) =>
           page
             ? {
-                ...page,
-                content: page.content.map((item) => (item.id === updated.id ? updated : item)),
-              }
+              ...page,
+              content: page.content.map((item) => (item.id === updated.id ? updated : item)),
+            }
             : page,
         );
       },

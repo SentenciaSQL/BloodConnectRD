@@ -34,7 +34,7 @@ class _BloodRequestsPageState extends ConsumerState<BloodRequestsPage> {
           ),
           IconButton(
             tooltip: 'Crear solicitud',
-            onPressed: () => context.push('/solicitudes/crear'),
+            onPressed: () => context.push('/crear-solicitud'),
             icon: const Icon(Icons.add_circle_outline),
           ),
         ],
@@ -113,7 +113,9 @@ class _BloodRequestsPageState extends ConsumerState<BloodRequestsPage> {
                     itemBuilder: (context, index) => RequestCard(
                       request: items[index],
                       onTap: () =>
-                          context.push('/solicitudes/${items[index].id}'),
+                          context.push(
+                            '/detalle-solicitud/${items[index].id}',
+                          ),
                     ),
                   ),
                 );

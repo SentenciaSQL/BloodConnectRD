@@ -85,6 +85,49 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/mis-solicitudes',
         builder: (context, state) => const MyRequestsPage(),
       ),
+      GoRoute(
+        path: '/crear-solicitud',
+        builder: (context, state) =>
+        const CreateBloodRequestPage(),
+      ),
+      GoRoute(
+        path: '/detalle-solicitud/:id',
+        builder: (context, state) {
+          final id = int.tryParse(
+            state.pathParameters['id'] ?? '',
+          );
+
+          if (id == null) {
+            return const _InvalidRequestPage();
+          }
+
+          return BloodRequestDetailPage(
+            requestId: id,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/editar-solicitud/:id',
+        builder: (context, state) {
+          final requestId = int.tryParse(
+            state.pathParameters['id'] ?? '',
+          );
+
+          if (requestId == null) {
+            return const Scaffold(
+              body: Center(
+                child: Text(
+                  'La solicitud no es válida.',
+                ),
+              ),
+            );
+          }
+
+          return CreateBloodRequestPage(
+            requestId: requestId,
+          );
+        },
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return HomeShellPage(navigationShell: navigationShell);
@@ -100,18 +143,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/solicitudes',
                 builder: (context, state) => const BloodRequestsPage(),
-                routes: [
-                  GoRoute(
-                    path: 'crear',
-                    builder: (context, state) => const CreateBloodRequestPage(),
-                  ),
-                  GoRoute(
-                    path: ':id',
-                    builder: (context, state) => BloodRequestDetailPage(
-                      requestId: int.parse(state.pathParameters['id']!),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -214,6 +245,44 @@ class _SplashPage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InvalidRequestPage extends StatelessWidget {
+  const _InvalidRequestPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detalle de solicitud'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 56,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'La solicitud seleccionada no es válida.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => context.pop(),
+                child: const Text('Volver'),
+              ),
+            ],
+          ),
         ),
       ),
     );

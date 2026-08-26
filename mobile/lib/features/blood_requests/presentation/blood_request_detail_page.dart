@@ -25,6 +25,24 @@ class _BloodRequestDetailPageState
     extends ConsumerState<BloodRequestDetailPage> {
   bool _submitting = false;
 
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      leading: IconButton(
+        tooltip: 'Volver',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/mis-solicitudes');
+          }
+        },
+      ),
+      title: const Text('Detalle de solicitud'),
+    );
+  }
+
   Future<void> _offerHelp() async {
     final message = await showDialog<String>(
       context: context,
@@ -64,11 +82,11 @@ class _BloodRequestDetailPageState
       await ref
           .read(bloodRequestRepositoryProvider)
           .reportDonation(
-            widget.requestId,
-            units: draft.units,
-            donationDate: draft.date,
-            notes: draft.notes,
-          );
+        widget.requestId,
+        units: draft.units,
+        donationDate: draft.date,
+        notes: draft.notes,
+      );
       invalidateBloodRequestCaches(ref, requestId: widget.requestId);
       ref.invalidate(donationHistoryProvider);
       if (!mounted) return;
@@ -151,11 +169,11 @@ class _BloodRequestDetailPageState
     final user = ref.watch(authControllerProvider).user;
     return request.when(
       loading: () => Scaffold(
-        appBar: AppBar(title: const Text('Detalle de solicitud')),
+        appBar: _buildAppBar(),
         body: const LoadingView(),
       ),
       error: (error, _) => Scaffold(
-        appBar: AppBar(title: const Text('Detalle de solicitud')),
+        appBar: _buildAppBar(),
         body: ErrorView(
           message: friendlyError(error),
           onRetry: () =>
@@ -170,27 +188,27 @@ class _BloodRequestDetailPageState
         final helpOffers =
             offers.valueOrNull ?? const <DonationResponseModel>[];
         final mine = reportedDonations.where(
-          (donation) => donation.donorUserId == user?.id,
+              (donation) => donation.donorUserId == user?.id,
         );
         final myDonation = mine.isEmpty ? null : mine.first;
         final pendingMine = myDonation != null && myDonation.isPendingConfirmation;
         final myOffer = helpOffers.where(
-          (offer) => offer.donorUserId == user?.id && offer.isActiveOffer,
+              (offer) => offer.donorUserId == user?.id && offer.isActiveOffer,
         );
         final alreadyOffered = myOffer.isNotEmpty;
         final canOffer =
             isDonor &&
-            !isOwner &&
-            !alreadyOffered &&
-            (item.status == 'OPEN' || item.status == 'IN_PROGRESS');
+                !isOwner &&
+                !alreadyOffered &&
+                (item.status == 'OPEN' || item.status == 'IN_PROGRESS');
         final canReport =
             isDonor &&
-            !isOwner &&
-            (item.status == 'OPEN' || item.status == 'IN_PROGRESS') &&
-            item.pendingUnits > 0 &&
-            !pendingMine;
+                !isOwner &&
+                (item.status == 'OPEN' || item.status == 'IN_PROGRESS') &&
+                item.pendingUnits > 0 &&
+                !pendingMine;
         return Scaffold(
-          appBar: AppBar(title: const Text('Detalle de solicitud')),
+          appBar: _buildAppBar(),
           body: ListView(
             padding: EdgeInsets.fromLTRB(20, 20, 20, canReport || pendingMine ? 120 : 28),
             children: [
@@ -284,14 +302,14 @@ class _BloodRequestDetailPageState
                       donation: donation,
                       submitting: _submitting,
                       onConfirm:
-                          donation.isPendingConfirmation &&
-                              item.pendingUnits + donation.confirmedUnits > 0
+                      donation.isPendingConfirmation &&
+                          item.pendingUnits + donation.confirmedUnits > 0
                           ? () => _confirmDonation(
-                              donation,
-                              (item.pendingUnits + donation.confirmedUnits)
-                                  .clamp(0, donation.units)
-                                  .toInt(),
-                            )
+                        donation,
+                        (item.pendingUnits + donation.confirmedUnits)
+                            .clamp(0, donation.units)
+                            .toInt(),
+                      )
                           : null,
                     ),
               ],
@@ -339,24 +357,24 @@ class _BloodRequestDetailPageState
           ),
           bottomNavigationBar: canReport
               ? SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: FilledButton.icon(
-                      onPressed: _submitting
-                          ? null
-                          : () => _reportDonation(item.pendingUnits),
-                      icon: const Icon(Icons.water_drop),
-                      label: Text(_submitting ? 'Registrando…' : '🩸 Ya doné'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                        textStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: FilledButton.icon(
+                onPressed: _submitting
+                    ? null
+                    : () => _reportDonation(item.pendingUnits),
+                icon: const Icon(Icons.water_drop),
+                label: Text(_submitting ? 'Registrando…' : '🩸 Ya doné'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
-                )
+                ),
+              ),
+            ),
+          )
               : null,
         );
       },
@@ -626,15 +644,15 @@ class _ReportDonationSheetState extends State<_ReportDonationSheet> {
             onPressed: widget.maxUnits < 1
                 ? null
                 : () => Navigator.pop(
-                    context,
-                    _DonationReportDraft(
-                      units: _units,
-                      date: _date,
-                      notes: _notes.text.trim().isEmpty
-                          ? null
-                          : _notes.text.trim(),
-                    ),
-                  ),
+              context,
+              _DonationReportDraft(
+                units: _units,
+                date: _date,
+                notes: _notes.text.trim().isEmpty
+                    ? null
+                    : _notes.text.trim(),
+              ),
+            ),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             child: const Text('Confirmar donación'),
           ),
