@@ -39,10 +39,7 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
   void _loadList() {
     final future = ref
         .read(donationCenterRepositoryProvider)
-        .list(
-          provinceId: _provinceId,
-          municipalityId: _municipalityId,
-        );
+        .list(provinceId: _provinceId, municipalityId: _municipalityId);
 
     setState(() {
       _centers = future;
@@ -55,8 +52,7 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
     });
 
     try {
-      final serviceEnabled =
-          await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         throw const PermissionDeniedException(
@@ -83,17 +79,11 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
         ),
       );
 
-      final currentLocation = LatLng(
-        position.latitude,
-        position.longitude,
-      );
+      final currentLocation = LatLng(position.latitude, position.longitude);
 
       final future = ref
           .read(donationCenterRepositoryProvider)
-          .nearby(
-            latitude: position.latitude,
-            longitude: position.longitude,
-          );
+          .nearby(latitude: position.latitude, longitude: position.longitude);
 
       if (!mounted) return;
 
@@ -114,11 +104,9 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(friendlyError(error)),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyError(error))));
     } finally {
       if (mounted) {
         setState(() {
@@ -134,9 +122,7 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
 
     final municipalities = _provinceId == null
         ? const AsyncValue<List<Municipality>>.data([])
-        : ref.watch(
-            municipalitiesProvider(_provinceId!),
-          );
+        : ref.watch(municipalitiesProvider(_provinceId!));
 
     return Scaffold(
       appBar: AppBar(
@@ -149,35 +135,23 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                 _mapMode = !_mapMode;
               });
             },
-            icon: Icon(
-              _mapMode
-                  ? Icons.list
-                  : Icons.map_outlined,
-            ),
+            icon: Icon(_mapMode ? Icons.list : Icons.map_outlined),
           ),
         ],
       ),
       body: Column(
         children: [
           Card(
-            margin: const EdgeInsets.fromLTRB(
-              16,
-              4,
-              16,
-              10,
-            ),
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
                   provinces.when(
-                    loading: () =>
-                        const LinearProgressIndicator(),
-                    error: (_, _) => const Text(
-                      'No se pudieron cargar provincias',
-                    ),
-                    data: (items) =>
-                        DropdownButtonFormField<int?>(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, _) =>
+                        const Text('No se pudieron cargar provincias'),
+                    data: (items) => DropdownButtonFormField<int?>(
                       value: _provinceId,
                       decoration: const InputDecoration(
                         labelText: 'Provincia',
@@ -189,8 +163,7 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                           child: Text('Todas'),
                         ),
                         ...items.map(
-                          (item) =>
-                              DropdownMenuItem<int?>(
+                          (item) => DropdownMenuItem<int?>(
                             value: item.id,
                             child: Text(item.name),
                           ),
@@ -210,20 +183,15 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                   if (_provinceId != null) ...[
                     const SizedBox(height: 8),
                     municipalities.when(
-                      loading: () =>
-                          const LinearProgressIndicator(),
-                      error: (_, _) => const Text(
-                        'No se pudieron cargar municipios',
-                      ),
-                      data: (items) =>
-                          DropdownButtonFormField<int?>(
+                      loading: () => const LinearProgressIndicator(),
+                      error: (_, _) =>
+                          const Text('No se pudieron cargar municipios'),
+                      data: (items) => DropdownButtonFormField<int?>(
                         key: ValueKey(_provinceId),
                         value: _municipalityId,
-                        decoration:
-                            const InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Municipio',
-                          border:
-                              OutlineInputBorder(),
+                          border: OutlineInputBorder(),
                         ),
                         items: [
                           const DropdownMenuItem<int?>(
@@ -231,8 +199,7 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                             child: Text('Todos'),
                           ),
                           ...items.map(
-                            (item) =>
-                                DropdownMenuItem<int?>(
+                            (item) => DropdownMenuItem<int?>(
                               value: item.id,
                               child: Text(item.name),
                             ),
@@ -251,55 +218,40 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                   ],
                   const SizedBox(height: 4),
                   TextButton.icon(
-                    onPressed:
-                        _locating ? null : _nearby,
+                    onPressed: _locating ? null : _nearby,
                     icon: _locating
                         ? const SizedBox.square(
                             dimension: 18,
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(
-                            Icons.near_me_outlined,
-                          ),
-                    label: const Text(
-                      'Buscar cerca de mí',
-                    ),
+                        : const Icon(Icons.near_me_outlined),
+                    label: const Text('Buscar cerca de mí'),
                   ),
                 ],
               ),
             ),
           ),
           Expanded(
-            child:
-                FutureBuilder<List<DonationCenterModel>>(
+            child: FutureBuilder<List<DonationCenterModel>>(
               future: _centers,
               builder: (context, snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const LoadingView(
-                    message: 'Buscando centros…',
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const LoadingView(message: 'Buscando centros…');
                 }
 
                 if (snapshot.hasError) {
                   return ErrorView(
-                    message:
-                        friendlyError(snapshot.error!),
+                    message: friendlyError(snapshot.error!),
                     onRetry: _loadList,
                   );
                 }
 
-                final items =
-                    snapshot.data ?? const [];
+                final items = snapshot.data ?? const [];
 
                 if (_mapMode) {
                   return _CentersMap(
                     centers: items,
-                    currentLocation:
-                        _currentLocation,
+                    currentLocation: _currentLocation,
                     onShowList: () {
                       setState(() {
                         _mapMode = false;
@@ -313,8 +265,7 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                     title: 'No hay centros',
                     message:
                         'No encontramos centros en la ubicación seleccionada.',
-                    icon:
-                        Icons.local_hospital_outlined,
+                    icon: Icons.local_hospital_outlined,
                   );
                 }
 
@@ -324,23 +275,11 @@ class _DonationCentersPageState extends ConsumerState<DonationCentersPage> {
                     await _centers;
                   },
                   child: ListView.separated(
-                    padding:
-                        const EdgeInsets.fromLTRB(
-                      16,
-                      4,
-                      16,
-                      96,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                     itemCount: items.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (
-                      context,
-                      index,
-                    ) =>
-                        DonationCenterCard(
-                      center: items[index],
-                    ),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) =>
+                        DonationCenterCard(center: items[index]),
                   ),
                 );
               },
@@ -366,27 +305,19 @@ class _CentersMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final located = centers
-        .where(
-          (center) =>
-              center.latitude != null &&
-              center.longitude != null,
-        )
+        .where((center) => center.latitude != null && center.longitude != null)
         .toList();
 
     final LatLng? initialPosition =
         currentLocation ??
-            (located.isNotEmpty
-                ? LatLng(
-                    located.first.latitude!,
-                    located.first.longitude!,
-                  )
-                : null);
+        (located.isNotEmpty
+            ? LatLng(located.first.latitude!, located.first.longitude!)
+            : null);
 
     if (initialPosition == null) {
       return EmptyState(
         title: 'Mapa no disponible',
-        message:
-            'No hay una ubicación disponible para mostrar en el mapa.',
+        message: 'No hay una ubicación disponible para mostrar en el mapa.',
         icon: Icons.map_outlined,
         action: OutlinedButton.icon(
           onPressed: onShowList,
@@ -404,12 +335,8 @@ class _CentersMap extends StatelessWidget {
       markers: located
           .map(
             (center) => Marker(
-              markerId:
-                  MarkerId(center.id.toString()),
-              position: LatLng(
-                center.latitude!,
-                center.longitude!,
-              ),
+              markerId: MarkerId(center.id.toString()),
+              position: LatLng(center.latitude!, center.longitude!),
               infoWindow: InfoWindow(
                 title: center.name,
                 snippet: center.address,
@@ -417,10 +344,8 @@ class _CentersMap extends StatelessWidget {
             ),
           )
           .toSet(),
-      myLocationEnabled:
-          currentLocation != null,
-      myLocationButtonEnabled:
-          currentLocation != null,
+      myLocationEnabled: currentLocation != null,
+      myLocationButtonEnabled: currentLocation != null,
       mapToolbarEnabled: false,
     );
   }

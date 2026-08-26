@@ -321,7 +321,8 @@ class _DonorProfileFormPageState extends ConsumerState<DonorProfileFormPage> {
                 DropdownMenuItem(value: 'MALE', child: Text('Masculino')),
                 DropdownMenuItem(value: 'OTHER', child: Text('Otro')),
               ],
-              validator: (value) => value == null ? 'Selecciona una opción' : null,
+              validator: (value) =>
+                  value == null ? 'Selecciona una opción' : null,
               onChanged: (value) => setState(() => _sex = value),
             ),
             const SizedBox(height: 12),
@@ -452,7 +453,9 @@ class _DonorProfileFormPageState extends ConsumerState<DonorProfileFormPage> {
             PrimaryButton(
               label: _submitting
                   ? 'Guardando…'
-                  : (_isEditing ? 'Guardar cambios' : 'Crear perfil de donante'),
+                  : (_isEditing
+                        ? 'Guardar cambios'
+                        : 'Crear perfil de donante'),
               onPressed: _submitting ? null : _submit,
             ),
           ],

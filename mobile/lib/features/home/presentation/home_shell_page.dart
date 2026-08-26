@@ -66,9 +66,6 @@ class _MessagesNavIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final icon = Icon(selected ? Icons.chat : Icons.chat_outlined);
     if (unread <= 0) return icon;
-    return Badge(
-      label: Text('$unread'),
-      child: icon,
-    );
+    return Badge(label: Text('$unread'), child: icon);
   }
 }

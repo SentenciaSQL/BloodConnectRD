@@ -10,12 +10,10 @@ class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
 
   @override
-  ConsumerState<ForgotPasswordPage> createState() =>
-      _ForgotPasswordPageState();
+  ConsumerState<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-class _ForgotPasswordPageState
-    extends ConsumerState<ForgotPasswordPage> {
+class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
 
@@ -40,9 +38,7 @@ class _ForgotPasswordPageState
     });
 
     try {
-      await ref.read(authRepositoryProvider).forgotPassword(
-        email: _email.text,
-      );
+      await ref.read(authRepositoryProvider).forgotPassword(email: _email.text);
 
       if (!mounted) return;
 
@@ -63,9 +59,7 @@ class _ForgotPasswordPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Recuperar contraseña'),
-      ),
+      appBar: AppBar(title: const Text('Recuperar contraseña')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -94,14 +88,14 @@ class _ForgotPasswordPageState
           const SizedBox(height: 12),
           Text(
             'Recupera tu contraseña',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           const Text(
             'Escribe el correo asociado a tu cuenta y te '
-                'enviaremos un enlace para crear una nueva contraseña.',
+            'enviaremos un enlace para crear una nueva contraseña.',
           ),
           const SizedBox(height: 28),
           AppTextField(
@@ -128,9 +122,7 @@ class _ForgotPasswordPageState
             const SizedBox(height: 12),
             Text(
               _errorMessage!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
           const SizedBox(height: 20),
@@ -142,9 +134,7 @@ class _ForgotPasswordPageState
           const SizedBox(height: 8),
           Center(
             child: TextButton(
-              onPressed: _isSubmitting
-                  ? null
-                  : () => context.go('/login'),
+              onPressed: _isSubmitting ? null : () => context.go('/login'),
               child: const Text('Volver a iniciar sesión'),
             ),
           ),
@@ -165,14 +155,14 @@ class _ForgotPasswordPageState
         Text(
           'Revisa tu correo',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 12),
         const Text(
           'Si existe una cuenta con ese correo, recibirás '
-              'las instrucciones para restablecer tu contraseña.',
+          'las instrucciones para restablecer tu contraseña.',
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),

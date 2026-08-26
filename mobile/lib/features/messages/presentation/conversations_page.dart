@@ -44,8 +44,9 @@ class ConversationsPage extends ConsumerWidget {
                 return ListTile(
                   onTap: () => context.push('/mensajes/${item.id}'),
                   tileColor: item.unreadCount > 0
-                      ? Theme.of(context).colorScheme.primaryContainer
-                          .withValues(alpha: 0.35)
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.35)
                       : null,
                   leading: Stack(
                     children: [
@@ -221,7 +222,8 @@ class _ConversationChatPageState extends ConsumerState<ConversationChatPage> {
                 dense: true,
                 title: Text(item.requestLabel),
                 trailing: const Icon(Icons.open_in_new, size: 18),
-                onTap: () => context.push('/solicitudes/${item.bloodRequestId}'),
+                onTap: () =>
+                    context.push('/detalle-solicitud/${item.bloodRequestId}'),
               ),
             ),
             orElse: () => const SizedBox.shrink(),

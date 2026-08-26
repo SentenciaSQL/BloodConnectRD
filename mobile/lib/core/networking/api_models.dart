@@ -197,78 +197,46 @@ class BloodRequestModel {
     this.longitude,
   });
 
-  factory BloodRequestModel.fromJson(
-      JsonMap json,
-      ) {
-    final unitsRequired = readJsonInt(
-      json,
-      ['unitsRequired', 'requiredUnits'],
-    );
+  factory BloodRequestModel.fromJson(JsonMap json) {
+    final unitsRequired = readJsonInt(json, ['unitsRequired', 'requiredUnits']);
 
-    final completedUnits = readJsonInt(
-      json,
-      [
-        'completedUnits',
-        'confirmedUnits',
-        'receivedUnits',
-        'unitsReceived',
-      ],
-    );
+    final completedUnits = readJsonInt(json, [
+      'completedUnits',
+      'confirmedUnits',
+      'receivedUnits',
+      'unitsReceived',
+    ]);
 
-    final computedPending =
-        unitsRequired - completedUnits;
+    final computedPending = unitsRequired - completedUnits;
 
-    final pendingUnits = readJsonInt(
-      json,
-      ['pendingUnits'],
-      computedPending < 0 ? 0 : computedPending,
-    );
+    final pendingUnits = readJsonInt(json, [
+      'pendingUnits',
+    ], computedPending < 0 ? 0 : computedPending);
 
     return BloodRequestModel(
       id: (json['id'] as num).toInt(),
-      createdById: readJsonInt(
-        json,
-        ['createdById'],
-      ),
-      patientName:
-      json['patientName']?.toString() ?? '',
-      bloodType:
-      json['bloodType']?.toString() ?? '',
+      createdById: readJsonInt(json, ['createdById']),
+      patientName: json['patientName']?.toString() ?? '',
+      bloodType: json['bloodType']?.toString() ?? '',
       unitsRequired: unitsRequired,
       completedUnits: completedUnits,
       pendingUnits: pendingUnits,
-      hospital:
-      json['hospital']?.toString() ?? '',
-      provinceName:
-      json['provinceName']?.toString() ?? '',
-      municipalityName:
-      json['municipalityName']?.toString() ?? '',
-      address:
-      json['address']?.toString() ?? '',
-      deadline: DateTime.tryParse(
-        json['deadline']?.toString() ?? '',
-      ),
-      description:
-      json['description']?.toString() ?? '',
-      contactPhone:
-      json['contactPhone']?.toString() ?? '',
-      urgency:
-      json['urgency']?.toString() ?? 'LOW',
-      status:
-      json['status']?.toString() ?? 'OPEN',
-      distanceKm:
-      (json['approximateDistanceKm'] as num?)
-          ?.toDouble(),
-      provinceId:
-      (json['provinceId'] as num?)?.toInt(),
-      municipalityId:
-      (json['municipalityId'] as num?)?.toInt(),
+      hospital: json['hospital']?.toString() ?? '',
+      provinceName: json['provinceName']?.toString() ?? '',
+      municipalityName: json['municipalityName']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      deadline: DateTime.tryParse(json['deadline']?.toString() ?? ''),
+      description: json['description']?.toString() ?? '',
+      contactPhone: json['contactPhone']?.toString() ?? '',
+      urgency: json['urgency']?.toString() ?? 'LOW',
+      status: json['status']?.toString() ?? 'OPEN',
+      distanceKm: (json['approximateDistanceKm'] as num?)?.toDouble(),
+      provinceId: (json['provinceId'] as num?)?.toInt(),
+      municipalityId: (json['municipalityId'] as num?)?.toInt(),
       sector: json['sector']?.toString(),
       reference: json['reference']?.toString(),
-      latitude:
-      (json['latitude'] as num?)?.toDouble(),
-      longitude:
-      (json['longitude'] as num?)?.toDouble(),
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -320,10 +288,10 @@ class BloodRequestModel {
       return 0.0;
     }
 
-    return (
-        confirmedUnits.toDouble() /
-            unitsRequired.toDouble()
-    ).clamp(0.0, 1.0);
+    return (confirmedUnits.toDouble() / unitsRequired.toDouble()).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   int get progressPercent {
@@ -436,10 +404,9 @@ class DonationModel {
     _ => status,
   };
 
-  String get title =>
-      (hospital != null && hospital!.isNotEmpty)
-          ? hospital!
-          : (centerName.isEmpty ? 'Donación registrada' : centerName);
+  String get title => (hospital != null && hospital!.isNotEmpty)
+      ? hospital!
+      : (centerName.isEmpty ? 'Donación registrada' : centerName);
 }
 
 class DonationResponseModel {
@@ -591,10 +558,9 @@ class ConversationModel {
     ].where((part) => part.isNotEmpty).join(' · ');
   }
 
-  String get preview =>
-      (lastMessage == null || lastMessage!.isEmpty)
-          ? 'Conversación iniciada. Escribe el primer mensaje.'
-          : lastMessage!;
+  String get preview => (lastMessage == null || lastMessage!.isEmpty)
+      ? 'Conversación iniciada. Escribe el primer mensaje.'
+      : lastMessage!;
 }
 
 class ChatMessageModel {

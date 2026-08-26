@@ -271,7 +271,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: RequestCard(
                         request: item,
-                        onTap: () => context.push('/solicitudes/${item.id}'),
+                        onTap: () =>
+                            context.push('/detalle-solicitud/${item.id}'),
                       ),
                     ),
                   ),
@@ -319,7 +320,7 @@ class _RequestSection extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: RequestCard(
                     request: item,
-                    onTap: () => context.push('/solicitudes/${item.id}'),
+                    onTap: () => context.push('/detalle-solicitud/${item.id}'),
                   ),
                 ),
               )

@@ -39,14 +39,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     final email = _email.text.trim();
 
-    final message = await ref.read(authControllerProvider.notifier).register(
-      firstName: _firstName.text,
-      lastName: _lastName.text,
-      email: email,
-      phone: _phone.text,
-      password: _password.text,
-      confirmPassword: _confirmPassword.text,
-    );
+    final message = await ref
+        .read(authControllerProvider.notifier)
+        .register(
+          firstName: _firstName.text,
+          lastName: _lastName.text,
+          email: email,
+          phone: _phone.text,
+          password: _password.text,
+          confirmPassword: _confirmPassword.text,
+        );
 
     if (message == null || !mounted) return;
 
@@ -73,10 +75,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     context.go(
       Uri(
         path: '/login',
-        queryParameters: {
-          'registro': 'pendiente',
-          'email': email,
-        },
+        queryParameters: {'registro': 'pendiente', 'email': email},
       ).toString(),
     );
   }

@@ -34,9 +34,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final location = state.matchedLocation;
       final onAuthPage =
           location == '/login' ||
-              location == '/registro' ||
-              location == '/recuperar-contrasena' ||
-              location == '/reset-password';
+          location == '/registro' ||
+          location == '/recuperar-contrasena' ||
+          location == '/reset-password';
       if (auth.isInitializing) {
         return location == '/cargando' ? null : '/cargando';
       }
@@ -57,8 +57,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return LoginPage(
             registrationPending:
                 state.uri.queryParameters['registro'] == 'pendiente',
-            initialEmail:
-                state.uri.queryParameters['email'] ?? '',
+            initialEmail: state.uri.queryParameters['email'] ?? '',
           );
         },
       ),
@@ -73,8 +72,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reset-password',
         builder: (context, state) {
-          final token =
-              state.uri.queryParameters['token'] ?? '';
+          final token = state.uri.queryParameters['token'] ?? '';
 
           return ResetPasswordPage(token: token);
         },
@@ -83,10 +81,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/notificaciones',
         builder: (context, state) => const NotificationsPage(),
       ),
-      GoRoute(
-        path: '/donar',
-        builder: (context, state) => const DonatePage(),
-      ),
+      GoRoute(path: '/donar', builder: (context, state) => const DonatePage()),
       GoRoute(
         path: '/donaciones',
         builder: (context, state) => const DonationHistoryPage(),
@@ -97,45 +92,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/crear-solicitud',
-        builder: (context, state) =>
-        const CreateBloodRequestPage(),
+        builder: (context, state) => const CreateBloodRequestPage(),
       ),
       GoRoute(
         path: '/detalle-solicitud/:id',
         builder: (context, state) {
-          final id = int.tryParse(
-            state.pathParameters['id'] ?? '',
-          );
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
 
           if (id == null) {
             return const _InvalidRequestPage();
           }
 
-          return BloodRequestDetailPage(
-            requestId: id,
-          );
+          return BloodRequestDetailPage(requestId: id);
         },
       ),
       GoRoute(
         path: '/editar-solicitud/:id',
         builder: (context, state) {
-          final requestId = int.tryParse(
-            state.pathParameters['id'] ?? '',
-          );
+          final requestId = int.tryParse(state.pathParameters['id'] ?? '');
 
           if (requestId == null) {
             return const Scaffold(
-              body: Center(
-                child: Text(
-                  'La solicitud no es válida.',
-                ),
-              ),
+              body: Center(child: Text('La solicitud no es válida.')),
             );
           }
 
-          return CreateBloodRequestPage(
-            requestId: requestId,
-          );
+          return CreateBloodRequestPage(requestId: requestId);
         },
       ),
       StatefulShellRoute.indexedStack(
@@ -163,13 +145,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: ':id',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) {
-                      final requestId = int.tryParse(state.pathParameters['id'] ?? '');
+                      final requestId = int.tryParse(
+                        state.pathParameters['id'] ?? '',
+                      );
 
                       if (requestId == null) {
                         return const Scaffold(
-                          body: Center(
-                            child: Text('Solicitud no válida'),
-                          ),
+                          body: Center(child: Text('Solicitud no válida')),
                         );
                       }
 
@@ -258,16 +240,16 @@ class _SplashPage extends StatelessWidget {
             Text(
               'BloodConnect RD',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF1D2528),
-                  ),
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1D2528),
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               'República Dominicana',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF547478),
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF547478)),
             ),
             const SizedBox(height: 28),
             SizedBox(
@@ -291,9 +273,7 @@ class _InvalidRequestPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalle de solicitud'),
-      ),
+      appBar: AppBar(title: const Text('Detalle de solicitud')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

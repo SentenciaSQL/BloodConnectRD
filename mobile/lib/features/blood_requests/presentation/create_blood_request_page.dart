@@ -13,7 +13,7 @@ import '../../locations/data/location_repository.dart';
 import '../data/blood_request_repository.dart';
 
 class CreateBloodRequestPage extends ConsumerStatefulWidget {
-  const CreateBloodRequestPage({ super.key, this.requestId });
+  const CreateBloodRequestPage({super.key, this.requestId});
 
   final int? requestId;
 
@@ -93,11 +93,9 @@ class _CreateBloodRequestPageState
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(friendlyError(error)),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyError(error))));
 
       context.pop();
     } finally {
@@ -203,9 +201,7 @@ class _CreateBloodRequestPageState
         _deadline == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Completa todos los campos obligatorios.',
-          ),
+          content: Text('Completa todos los campos obligatorios.'),
         ),
       );
 
@@ -221,51 +217,33 @@ class _CreateBloodRequestPageState
     final payload = <String, dynamic>{
       'patientName': _patient.text.trim(),
       'bloodType': _bloodType,
-      'unitsRequired': int.parse(
-        _units.text,
-      ),
+      'unitsRequired': int.parse(_units.text),
       'hospital': _hospital.text.trim(),
       'provinceId': _provinceId,
       'municipalityId': _municipalityId,
       'sector': _optional(_sector.text),
       'address': _address.text.trim(),
-      'reference': _optional(
-        _reference.text,
-      ),
+      'reference': _optional(_reference.text),
       'latitude': _latitude,
       'longitude': _longitude,
-      'deadline': _deadline!
-          .toUtc()
-          .toIso8601String(),
-      'description': _optional(
-        _description.text,
-      ),
+      'deadline': _deadline!.toUtc().toIso8601String(),
+      'description': _optional(_description.text),
       'contactPhone': _phone.text.trim(),
       'urgency': _urgency,
     };
 
     try {
-      final repository = ref.read(
-        bloodRequestRepositoryProvider,
-      );
+      final repository = ref.read(bloodRequestRepositoryProvider);
 
       final BloodRequestModel request;
 
       if (widget.requestId != null) {
-        request = await repository.update(
-          widget.requestId!,
-          payload,
-        );
+        request = await repository.update(widget.requestId!, payload);
       } else {
-        request = await repository.create(
-          payload,
-        );
+        request = await repository.create(payload);
       }
 
-      invalidateBloodRequestCaches(
-        ref,
-        requestId: request.id,
-      );
+      invalidateBloodRequestCaches(ref, requestId: request.id);
 
       if (!mounted) return;
 
@@ -280,24 +258,16 @@ class _CreateBloodRequestPageState
       );
 
       if (widget.isEditing) {
-        context.go(
-          '/detalle-solicitud/${request.id}',
-        );
+        context.go('/detalle-solicitud/${request.id}');
       } else {
-        context.go(
-          '/detalle-solicitud/${request.id}',
-        );
+        context.go('/detalle-solicitud/${request.id}');
       }
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            friendlyError(error),
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyError(error))));
     } finally {
       if (mounted) {
         setState(() {
@@ -316,11 +286,7 @@ class _CreateBloodRequestPageState
   Widget build(BuildContext context) {
     if (_loadingRequest) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Actualizar solicitud',
-          ),
-        ),
+        appBar: AppBar(title: const Text('Actualizar solicitud')),
         body: const LoadingView(),
       );
     }
@@ -332,9 +298,7 @@ class _CreateBloodRequestPageState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isEditing
-              ? 'Actualizar solicitud'
-              : 'Crear solicitud',
+          widget.isEditing ? 'Actualizar solicitud' : 'Crear solicitud',
         ),
       ),
       body: Form(
