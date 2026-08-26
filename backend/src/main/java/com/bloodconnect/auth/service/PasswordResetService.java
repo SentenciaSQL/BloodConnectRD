@@ -4,9 +4,12 @@ import com.bloodconnect.auth.entity.PasswordResetToken;
 import com.bloodconnect.auth.repository.PasswordResetTokenRepository;
 import com.bloodconnect.exception.BadRequestException;
 import com.bloodconnect.user.entity.User;
-import com.resend.Resend;
-import com.resend.core.exception.ResendException;
-import com.resend.services.emails.model.CreateEmailOptions;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,6 +22,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import java.time.Duration;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -107,30 +112,82 @@ public class PasswordResetService {
                     )
             );
 
-            CreateEmailOptions email = CreateEmailOptions.builder()
-                    .from(from)
-                    .to(user.getEmail())
-                    .subject(
-                            "Recupera tu contraseña de BloodConnect RD"
+            SimpleClientHttpRequestFactory requestFactory =
+                    new SimpleClientHttpRequestFactory();
+
+            requestFactory.setConnectTimeout(
+                    Duration.ofSeconds(10)
+            );
+
+            requestFactory.setReadTimeout(
+                    Duration.ofSeconds(20)
+            );
+
+            RestClient resendClient = RestClient.builder()
+                    .baseUrl("https://api.resend.com")
+                    .requestFactory(requestFactory)
+                    .defaultHeader(
+                            HttpHeaders.AUTHORIZATION,
+                            "Bearer " + resendApiKey
                     )
-                    .text(body)
+                    .defaultHeader(
+                            HttpHeaders.CONTENT_TYPE,
+                            MediaType.APPLICATION_JSON_VALUE
+                    )
                     .build();
 
-            Resend resend = new Resend(resendApiKey);
-
-            System.out.println(
-                    "Llamando a la API de Resend..."
+            Map<String, Object> requestBody = Map.of(
+                    "from", from,
+                    "to", new String[]{user.getEmail()},
+                    "subject",
+                    "Recupera tu contraseña de BloodConnect RD",
+                    "text", body
             );
 
-            var response = resend.emails().send(email);
-
             System.out.println(
-                    "Respuesta recibida de Resend"
+                    "Llamando directamente a la API de Resend..."
             );
+
+            ResendEmailResponse response = resendClient.post()
+                    .uri("/emails")
+                    .body(requestBody)
+                    .retrieve()
+                    .body(ResendEmailResponse.class);
+
+            if (response == null || response.id() == null) {
+                throw new IllegalStateException(
+                        "Resend respondió sin un identificador de correo"
+                );
+            }
 
             System.out.println(
                     "Correo enviado correctamente. Resend ID: "
-                            + response.getId()
+                            + response.id()
+            );
+        } catch (RestClientResponseException exception) {
+            System.err.println(
+                    "RESEND RESPONDIÓ CON HTTP "
+                            + exception.getStatusCode()
+            );
+
+            System.err.println(
+                    "RESPUESTA DE RESEND: "
+                            + exception.getResponseBodyAsString()
+            );
+
+            throw new IllegalStateException(
+                    "Resend rechazó el envío del correo",
+                    exception
+            );
+        } catch (ResourceAccessException exception) {
+            System.err.println(
+                    "NO SE PUDO CONECTAR CON RESEND: "
+                            + exception.getMessage()
+            );
+
+            throw new IllegalStateException(
+                    "No se pudo conectar con la API de Resend",
+                    exception
             );
         } catch (Exception exception) {
             System.err.println(
@@ -190,5 +247,8 @@ public class PasswordResetService {
                     exception
             );
         }
+    }
+
+    private record ResendEmailResponse(String id) {
     }
 }
