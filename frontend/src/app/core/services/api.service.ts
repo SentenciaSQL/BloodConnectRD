@@ -23,6 +23,7 @@ import {
   PageResponse,
   Province,
   Role,
+  RequestStatus,
   UnreadCount,
   Urgency,
   User,
@@ -95,10 +96,27 @@ export class ApiService {
     });
   }
 
-  myRequests(page = 0) {
-    return this.http.get<PageResponse<BloodRequest>>(`${this.base}/blood-requests/my`, {
-      params: { page, size: 12 },
-    });
+  myRequests(
+    page = 0,
+    statuses: RequestStatus[] = [
+      'OPEN',
+      'IN_PROGRESS',
+    ],
+  ) {
+    return this.http.get<PageResponse<BloodRequest>>(
+      `${this.base}/blood-requests/my`,
+      {
+        params: {
+          page,
+          size: 12,
+          sort: 'createdAt',
+          direction: 'desc',
+          ...(statuses.length
+            ? { status: statuses }
+            : {}),
+        },
+      },
+    );
   }
 
   request(id: number) {

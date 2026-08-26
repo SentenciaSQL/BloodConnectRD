@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -22,6 +22,7 @@ import {
   Notification,
   PageResponse,
   Province,
+  RequestStatus,
   Sex,
   Urgency,
   requestProgressPercent,
@@ -470,11 +471,34 @@ export class ProfilePage implements OnInit {
       </button>
     </header>
 
+    <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
+      <label class="w-full sm:w-72">
+        <span class="form-label">Filtrar por estado</span>
+        <select
+          class="form-control"
+          [value]="statusFilter()"
+          (change)="changeStatusFilter($any($event.target).value)"
+        >
+          <option value="ACTIVE">Activas (abiertas y en progreso)</option>
+          <option value="OPEN">Abiertas</option>
+          <option value="IN_PROGRESS">En progreso</option>
+          <option value="FULFILLED">Completadas</option>
+          <option value="CANCELLED">Canceladas</option>
+          <option value="EXPIRED">Vencidas</option>
+          <option value="ALL">Todas</option>
+        </select>
+      </label>
+      <p class="text-sm text-ink-500">
+        {{ filteredRequests().length }}
+        {{ filteredRequests().length === 1 ? 'solicitud' : 'solicitudes' }}
+      </p>
+    </div>
+
     @if (loading()) {
       <app-loading-spinner />
-    } @else if (page()?.content?.length) {
+    } @else if (filteredRequests().length) {
       <div class="mt-8 grid gap-4">
-        @for (request of page()!.content; track request.id) {
+        @for (request of filteredRequests(); track request.id) {
           <article class="rounded-2xl border border-ink-100 bg-white p-5 shadow-sm">
             <div class="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -498,25 +522,14 @@ export class ProfilePage implements OnInit {
                 </p>
               </div>
               <div class="flex flex-wrap gap-2">
-                <a
-                  [routerLink]="['/solicitudes', requestSlug(request)]"
-                  class="btn-secondary"
-                >
+                <a [routerLink]="['/solicitudes', requestSlug(request)]" class="btn-secondary">
                   Ver
                 </a>
                 @if (request.status === 'OPEN' || request.status === 'IN_PROGRESS') {
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    (click)="openEdit(request)"
-                  >
+                  <button type="button" class="btn-secondary" (click)="openEdit(request)">
                     Actualizar
                   </button>
-                  <button
-                    type="button"
-                    class="btn-secondary !text-brand-700"
-                    (click)="cancel(request)"
-                  >
+                  <button type="button" class="btn-secondary !text-brand-700" (click)="cancel(request)">
                     Cancelar
                   </button>
                 }
@@ -543,10 +556,10 @@ export class ProfilePage implements OnInit {
     } @else {
       <div class="mt-8">
         <app-empty-state
-          title="No has creado solicitudes"
-          message="Publica un caso con la información del centro de salud y un contacto válido."
+          [title]="statusFilter() === 'ACTIVE' ? 'No tienes solicitudes activas' : 'No hay solicitudes con este estado'"
+          [message]="statusFilter() === 'ACTIVE' ? 'No tienes solicitudes abiertas ni en progreso.' : 'Selecciona otro estado para consultar tus solicitudes.'"
         >
-          <button type="button" class="btn-primary" (click)="openCreate()">Crear solicitud</button>
+          <button type="button" class="btn-primary" (click)="modalOpen.set(true)">Crear solicitud</button>
         </app-empty-state>
       </div>
     }
@@ -664,6 +677,23 @@ export class MyRequestsPage implements OnInit {
   readonly requestSlug = bloodRequestSlug;
   readonly bloodTypes = BLOOD_TYPES;
   readonly page = signal<PageResponse<BloodRequest> | null>(null);
+  readonly statusFilter = signal<'ACTIVE' | 'ALL' | RequestStatus>('ACTIVE');
+  readonly filteredRequests = computed(() => {
+    const requests = this.page()?.content ?? [];
+    const selected = this.statusFilter();
+
+    if (selected === 'ACTIVE') {
+      return requests.filter(
+        (request) => request.status === 'OPEN' || request.status === 'IN_PROGRESS',
+      );
+    }
+
+    if (selected === 'ALL') {
+      return requests;
+    }
+
+    return requests.filter((request) => request.status === selected);
+  });
   readonly provinces = signal<Province[]>([]);
   readonly municipalities = signal<Municipality[]>([]);
   readonly loading = signal(true);
@@ -714,6 +744,10 @@ export class MyRequestsPage implements OnInit {
       },
       complete: () => this.loading.set(false),
     });
+  }
+
+  changeStatusFilter(value: string): void {
+    this.statusFilter.set(value as 'ACTIVE' | 'ALL' | RequestStatus);
   }
 
   provinceChanged(): void {
