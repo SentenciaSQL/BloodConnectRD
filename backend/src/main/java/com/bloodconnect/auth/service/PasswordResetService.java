@@ -118,7 +118,15 @@ public class PasswordResetService {
 
             Resend resend = new Resend(resendApiKey);
 
+            System.out.println(
+                    "Llamando a la API de Resend..."
+            );
+
             var response = resend.emails().send(email);
+
+            System.out.println(
+                    "Respuesta recibida de Resend"
+            );
 
             System.out.println(
                     "Correo enviado correctamente. Resend ID: "
