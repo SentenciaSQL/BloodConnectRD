@@ -85,7 +85,20 @@ class _MyRequestsPageState extends ConsumerState<MyRequestsPage> {
     final requests = ref.watch(myRequestsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis solicitudes')),
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Volver',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
+        title: const Text('Mis solicitudes'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           context.push('/crear-solicitud');
