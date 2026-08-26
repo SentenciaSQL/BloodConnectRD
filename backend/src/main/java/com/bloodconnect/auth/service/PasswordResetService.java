@@ -18,7 +18,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PasswordResetService {
@@ -87,19 +89,49 @@ public class PasswordResetService {
                         + "Este es un mensaje automático. "
                         + "Por favor, no respondas a este correo.";
 
-        CreateEmailOptions email = CreateEmailOptions.builder()
-                .from(from)
-                .to(user.getEmail())
-                .subject(
-                        "Recupera tu contraseña de BloodConnect RD"
-                )
-                .text(body)
-                .build();
-
         try {
+            System.out.println(
+                    "Intentando enviar correo de recuperación a: "
+                            + user.getEmail()
+            );
+
+            System.out.println(
+                    "Remitente configurado: " + from
+            );
+
+            System.out.println(
+                    "API key de Resend configurada: "
+                            + (
+                            resendApiKey != null
+                                    && !resendApiKey.isBlank()
+                    )
+            );
+
+            CreateEmailOptions email = CreateEmailOptions.builder()
+                    .from(from)
+                    .to(user.getEmail())
+                    .subject(
+                            "Recupera tu contraseña de BloodConnect RD"
+                    )
+                    .text(body)
+                    .build();
+
             Resend resend = new Resend(resendApiKey);
-            resend.emails().send(email);
-        } catch (ResendException exception) {
+
+            var response = resend.emails().send(email);
+
+            System.out.println(
+                    "Correo enviado correctamente. Resend ID: "
+                            + response.getId()
+            );
+        } catch (Exception exception) {
+            System.err.println(
+                    "ERROR ENVIANDO CORREO CON RESEND: "
+                            + exception.getMessage()
+            );
+
+            exception.printStackTrace();
+
             throw new IllegalStateException(
                     "No se pudo enviar el correo de recuperación",
                     exception
