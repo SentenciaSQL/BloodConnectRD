@@ -44,6 +44,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
     @Column(nullable = false, length = 20)
     private String phone;
 

@@ -21,6 +21,7 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'login', renderMode: RenderMode.Prerender, headers: noIndex },
   { path: 'registro', renderMode: RenderMode.Prerender, headers: noIndex },
   { path: 'recuperar-contrasena', renderMode: RenderMode.Prerender, headers: noIndex },
+  { path: 'verificar-correo', renderMode: RenderMode.Client, headers: noIndex },
   { path: 'reset-password', renderMode: RenderMode.Client, headers: noIndex },
 
   // Private

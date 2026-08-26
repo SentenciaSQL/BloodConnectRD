@@ -4,7 +4,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { Observable, catchError, finalize, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ApiError, AuthResponse, User } from '../models/api.models';
+import { ApiError, AuthResponse, MessageResponse, User } from '../models/api.models';
 
 const ACCESS_TOKEN_KEY = 'bloodconnect_access_token';
 const REFRESH_TOKEN_KEY = 'bloodconnect_refresh_token';
@@ -42,10 +42,8 @@ export class AuthService {
     password: string;
     confirmPassword: string;
     phone: string;
-  }): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(`${environment.apiBaseUrl}/auth/register`, data)
-      .pipe(tap((response) => this.persistSession(response)));
+  }): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${environment.apiBaseUrl}/auth/register`, data);
   }
 
   me(): Observable<User> {
@@ -106,6 +104,20 @@ export class AuthService {
     return this.http.post<{ message: string }>(
       `${environment.apiBaseUrl}/auth/reset-password`,
       data,
+    );
+  }
+
+  verifyEmail(token: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(
+      `${environment.apiBaseUrl}/auth/verify-email`,
+      { token },
+    );
+  }
+
+  resendVerification(email: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(
+      `${environment.apiBaseUrl}/auth/resend-verification`,
+      { email },
     );
   }
 

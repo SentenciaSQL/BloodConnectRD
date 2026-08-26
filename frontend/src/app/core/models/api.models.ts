@@ -50,6 +50,10 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
 export interface PageResponse<T> {
   content: T[];
   page: number;

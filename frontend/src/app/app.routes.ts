@@ -34,6 +34,12 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'verificar-correo',
+        canActivate: [guestGuard],
+        loadComponent: () =>
+          import('./features/auth/auth.pages').then((component) => component.VerifyEmailPage),
+      },
+      {
         path: 'reset-password',
         canActivate: [guestGuard],
         loadComponent: () =>

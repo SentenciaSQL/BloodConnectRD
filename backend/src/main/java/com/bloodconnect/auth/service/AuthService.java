@@ -8,6 +8,8 @@ import com.bloodconnect.auth.dto.RegisterRequest;
 import com.bloodconnect.auth.dto.ForgotPasswordRequest;
 import com.bloodconnect.auth.dto.ResetPasswordRequest;
 import com.bloodconnect.auth.entity.RefreshToken;
+import com.bloodconnect.auth.dto.VerifyEmailRequest;
+import com.bloodconnect.auth.dto.ResendVerificationRequest;
 import com.bloodconnect.common.enums.Role;
 import com.bloodconnect.common.util.PhoneNormalizer;
 import com.bloodconnect.exception.BadRequestException;
@@ -45,9 +47,10 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final RefreshTokenService refreshTokenService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public MessageResponse register(RegisterRequest request) {
         if (!request.password().equals(request.confirmPassword())) {
             throw new BadRequestException("Las contraseñas no coinciden");
         }
@@ -71,6 +74,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.password()))
                 .phone(phone)
                 .role(Role.USER)
+                .emailVerified(false)
                 .enabled(true)
                 .build();
 
@@ -80,8 +84,9 @@ public class AuthService {
             throw new ConflictException("Ya existe una cuenta con este correo electrónico");
         }
 
-        RefreshToken refreshToken = refreshTokenService.create(user);
-        return createAuthResponse(user, refreshToken.getToken());
+        emailVerificationService.createAndSend(user);
+
+        return new MessageResponse("Cuenta creada correctamente. Revisa tu correo electrónico para confirmar tu cuenta.");
     }
 
     @Transactional
@@ -89,15 +94,18 @@ public class AuthService {
         String email = normalizeEmail(request.email());
         Authentication authentication;
         try {
-            authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, request.password())
-            );
+            authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, request.password()));
         } catch (AuthenticationException exception) {
             throw new BadCredentialsException("Correo electrónico o contraseña incorrectos");
         }
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = findUser(principal.getId());
+
+        if (!user.isEmailVerified()) {
+            throw new BadRequestException("Debes confirmar tu correo electrónico antes de iniciar sesión");
+        }
+
         RefreshToken refreshToken = refreshTokenService.create(user);
         return createAuthResponse(user, refreshToken.getToken());
     }
@@ -145,20 +153,14 @@ public class AuthService {
     }
 
     @Transactional
-    public MessageResponse resetPassword(
-            ResetPasswordRequest request
-    ) {
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
         if (!request.password().equals(request.confirmPassword())) {
-            throw new BadRequestException(
-                    "Las contraseñas no coinciden"
-            );
+            throw new BadRequestException("Las contraseñas no coinciden");
         }
 
         User user = passwordResetService.consume(request.token());
 
-        user.setPassword(
-                passwordEncoder.encode(request.password())
-        );
+        user.setPassword(passwordEncoder.encode(request.password()));
 
         userRepository.save(user);
 
@@ -168,6 +170,33 @@ public class AuthService {
         return new MessageResponse(
                 "Contraseña restablecida correctamente"
         );
+    }
+
+    @Transactional
+    public MessageResponse verifyEmail(
+            VerifyEmailRequest request
+    ) {
+        emailVerificationService.verify(
+                request.token()
+        );
+
+        return new MessageResponse(
+                "Correo electrónico verificado correctamente"
+        );
+    }
+
+    @Transactional
+    public MessageResponse resendVerification(ResendVerificationRequest request) {
+        String email = normalizeEmail(request.email());
+
+        userRepository.findByEmail(email)
+                .filter(User::isEnabled)
+                .filter(user -> !user.isEmailVerified())
+                .ifPresent(
+                        emailVerificationService::createAndSend
+                );
+
+        return new MessageResponse("Si existe una cuenta pendiente de verificación, " + "recibirás un correo con las instrucciones");
     }
 
     private AuthResponse createAuthResponse(User user, String refreshToken) {

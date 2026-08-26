@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -46,6 +46,23 @@ function normalizedPhone(value: string): string {
             <p class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               Tu sesión venció. Inicia sesión nuevamente para continuar.
             </p>
+          }
+
+          @if (registrationPending()) {
+            <div class="mt-6 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+              <p class="font-bold">Cuenta creada correctamente</p>
+              <p class="mt-1">
+                Revisa tu correo electrónico y confirma tu cuenta antes de iniciar sesión.
+              </p>
+              <button
+                type="button"
+                class="mt-3 font-bold text-brand-700 hover:text-brand-900"
+                [disabled]="resending()"
+                (click)="resendVerification()"
+              >
+                {{ resending() ? 'Reenviando…' : 'Reenviar correo de verificación' }}
+              </button>
+            </div>
           }
 
           <form class="mt-8 grid gap-5" [formGroup]="form" (ngSubmit)="submit()">
@@ -117,11 +134,15 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly toast = inject(ToastService);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly expired = signal(this.route.snapshot.queryParamMap.get('sesion') === 'expirada');
+  readonly registrationPending = signal(this.route.snapshot.queryParamMap.get('registro') === 'pendiente');
+  readonly registeredEmail = this.route.snapshot.queryParamMap.get('email') ?? '';
+  readonly resending = signal(false);
   readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    email: [this.registeredEmail, [Validators.required, Validators.email]],
     password: ['', Validators.required],
   });
 
@@ -143,6 +164,26 @@ export class LoginPage {
         this.error.set(apiErrorMessage(error));
       },
       complete: () => this.loading.set(false),
+    });
+  }
+
+  resendVerification(): void {
+    const email = this.form.controls.email.value.trim();
+    if (!email) {
+      this.error.set('Escribe el correo electrónico de tu cuenta.');
+      return;
+    }
+
+    this.resending.set(true);
+    this.error.set('');
+
+    this.auth.resendVerification(email).subscribe({
+      next: (response) => this.toast.success(response.message),
+      error: (error) => {
+        this.resending.set(false);
+        this.error.set(apiErrorMessage(error));
+      },
+      complete: () => this.resending.set(false),
     });
   }
 }
@@ -457,6 +498,67 @@ export class ResetPasswordPage {
 }
 
 @Component({
+  selector: 'app-verify-email-page',
+  standalone: true,
+  imports: [RouterLink],
+  template: `
+    <section class="bg-ink-50 px-5 py-14 sm:py-20">
+      <div class="mx-auto max-w-lg rounded-3xl border border-ink-100 bg-white p-6 text-center shadow-sm sm:p-10">
+        @if (loading()) {
+          <p class="eyebrow">Verificación de correo</p>
+          <h1 class="font-display text-4xl font-semibold text-ink-950">Confirmando tu correo</h1>
+          <p class="mt-4 text-ink-600">Espera un momento mientras verificamos tu cuenta.</p>
+        } @else if (completed()) {
+          <p class="eyebrow">Correo confirmado</p>
+          <h1 class="font-display text-4xl font-semibold text-ink-950">Tu cuenta está lista</h1>
+          <p class="mt-4 text-ink-600">
+            Tu correo electrónico fue confirmado correctamente. Ya puedes iniciar sesión.
+          </p>
+          <a routerLink="/login" class="btn-primary mt-7 inline-flex">
+            Iniciar sesión
+          </a>
+        } @else {
+          <p class="eyebrow">No pudimos verificar el correo</p>
+          <h1 class="font-display text-4xl font-semibold text-ink-950">Enlace no válido</h1>
+          <p class="mt-4 rounded-lg border border-brand-200 bg-brand-50 p-3 text-sm text-brand-800">
+            {{ error() }}
+          </p>
+          <a routerLink="/login" class="btn-secondary mt-7 inline-flex">
+            Volver al inicio de sesión
+          </a>
+        }
+      </div>
+    </section>
+  `,
+})
+export class VerifyEmailPage implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+  readonly loading = signal(true);
+  readonly completed = signal(false);
+  readonly error = signal('');
+
+  ngOnInit(): void {
+    const token = this.route.snapshot.queryParamMap.get('token');
+
+    if (!token) {
+      this.loading.set(false);
+      this.error.set('El enlace de verificación no contiene un token.');
+      return;
+    }
+
+    this.auth.verifyEmail(token).subscribe({
+      next: () => this.completed.set(true),
+      error: (error) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(error));
+      },
+      complete: () => this.loading.set(false),
+    });
+  }
+}
+
+@Component({
   selector: 'app-register-page',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
@@ -597,9 +699,14 @@ export class RegisterPage {
     this.loading.set(true);
     this.error.set('');
     this.auth.register({ ...value, phone: normalizedPhone(value.phone) }).subscribe({
-      next: () => {
-        this.toast.success('Tu cuenta fue creada. Completa tu perfil para comenzar.');
-        void this.router.navigate(['/dashboard/perfil']);
+      next: (response) => {
+        this.toast.success(response.message);
+        void this.router.navigate(['/login'], {
+          queryParams: {
+            registro: 'pendiente',
+            email: value.email,
+          },
+        });
       },
       error: (error) => {
         this.loading.set(false);

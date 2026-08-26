@@ -10,6 +10,8 @@ import com.bloodconnect.security.UserPrincipal;
 import com.bloodconnect.user.dto.UserResponse;
 import com.bloodconnect.auth.dto.ForgotPasswordRequest;
 import com.bloodconnect.auth.dto.ResetPasswordRequest;
+import com.bloodconnect.auth.dto.VerifyEmailRequest;
+import com.bloodconnect.auth.dto.ResendVerificationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,8 +34,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    @Operation(summary = "Registrar una cuenta")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
@@ -82,5 +83,27 @@ public class AuthController {
     @Operation(summary = "Consultar el usuario autenticado")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(authService.me(principal));
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(
+            summary = "Verificar correo electrónico"
+    )
+    public ResponseEntity<MessageResponse> verifyEmail(
+            @Valid
+            @RequestBody
+            VerifyEmailRequest request
+    ) {
+        return ResponseEntity.ok(
+                authService.verifyEmail(request)
+        );
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Reenviar correo de verificación")
+    public ResponseEntity<MessageResponse> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        return ResponseEntity.ok(
+                authService.resendVerification(request)
+        );
     }
 }
