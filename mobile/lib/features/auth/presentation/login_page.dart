@@ -6,7 +6,10 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../domain/auth_controller.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key,this.registrationPending = false, this.initialEmail = ''});
+
+  final bool registrationPending;
+  final String initialEmail;
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -16,6 +19,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  bool _resending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _email.text = widget.initialEmail;
+  }
 
   @override
   void dispose() {
@@ -31,6 +41,35 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         .read(authControllerProvider.notifier)
         .login(email: _email.text, password: _password.text);
     if (success && mounted) context.go('/');
+  }
+
+  Future<void> _resendVerification() async {
+    final email = _email.text.trim();
+
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Escribe un correo electrónico válido.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _resending = true);
+
+    final message = await ref
+        .read(authControllerProvider.notifier)
+        .resendVerification(email);
+
+    if (!mounted) return;
+
+    setState(() => _resending = false);
+
+    if (message != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -61,9 +100,44 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Conecta con personas que necesitan sangre en República Dominicana.',
-                    ),
+                   const Text(
+                     'Conecta con personas que necesitan sangre en República Dominicana.',
+                   ),
+                   if (widget.registrationPending) ...[
+                     const SizedBox(height: 20),
+                     Container(
+                       width: double.infinity,
+                       padding: const EdgeInsets.all(16),
+                       decoration: BoxDecoration(
+                         color: Colors.green.shade50,
+                         border: Border.all(color: Colors.green.shade200),
+                         borderRadius: BorderRadius.circular(12),
+                       ),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           const Text(
+                             'Cuenta creada correctamente',
+                             style: TextStyle(fontWeight: FontWeight.bold),
+                           ),
+                           const SizedBox(height: 4),
+                           const Text(
+                             'Revisa tu correo y confirma tu cuenta antes de iniciar sesión.',
+                           ),
+                           const SizedBox(height: 8),
+                           TextButton(
+                             onPressed: _resending ? null : _resendVerification,
+                             child: Text(
+                               _resending
+                                   ? 'Reenviando…'
+                                   : 'Reenviar correo de verificación',
+                             ),
+                           ),
+                         ],
+                       ),
+                     ),
+                   ],
+                   const SizedBox(height: 28),
                     const SizedBox(height: 28),
                     AppTextField(
                       controller: _email,

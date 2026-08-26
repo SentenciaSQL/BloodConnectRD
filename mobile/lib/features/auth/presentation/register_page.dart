@@ -34,18 +34,51 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     FocusScope.of(context).unfocus();
-    final success = await ref
-        .read(authControllerProvider.notifier)
-        .register(
-          firstName: _firstName.text,
-          lastName: _lastName.text,
-          email: _email.text,
-          phone: _phone.text,
-          password: _password.text,
-          confirmPassword: _confirmPassword.text,
+
+    final email = _email.text.trim();
+
+    final message = await ref.read(authControllerProvider.notifier).register(
+      firstName: _firstName.text,
+      lastName: _lastName.text,
+      email: email,
+      phone: _phone.text,
+      password: _password.text,
+      confirmPassword: _confirmPassword.text,
+    );
+
+    if (message == null || !mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          icon: const Icon(Icons.mark_email_read_outlined, size: 48),
+          title: const Text('Revisa tu correo'),
+          content: Text(message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Ir a iniciar sesión'),
+            ),
+          ],
         );
-    if (success && mounted) context.go('/');
+      },
+    );
+
+    if (!mounted) return;
+
+    context.go(
+      Uri(
+        path: '/login',
+        queryParameters: {
+          'registro': 'pendiente',
+          'email': email,
+        },
+      ).toString(),
+    );
   }
 
   @override

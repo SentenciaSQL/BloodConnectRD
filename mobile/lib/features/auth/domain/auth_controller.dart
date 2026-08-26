@@ -85,7 +85,7 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> register({
+  Future<String?> register({
     required String firstName,
     required String lastName,
     required String email,
@@ -94,8 +94,9 @@ class AuthController extends StateNotifier<AuthState> {
     required String confirmPassword,
   }) async {
     state = state.copyWith(isSubmitting: true, clearError: true);
+
     try {
-      final auth = await _repository.register(
+      final message = await _repository.register(
         firstName: firstName,
         lastName: lastName,
         email: email,
@@ -103,15 +104,31 @@ class AuthController extends StateNotifier<AuthState> {
         password: password,
         confirmPassword: confirmPassword,
       );
-      state = AuthState(user: auth.user);
-      await _messaging.start();
-      return true;
+
+      state = const AuthState();
+      return message;
     } catch (error) {
       state = state.copyWith(
         isSubmitting: false,
         errorMessage: friendlyError(error),
       );
-      return false;
+      return null;
+    }
+  }
+
+  Future<String?> resendVerification(String email) async {
+    state = state.copyWith(isSubmitting: true, clearError: true);
+
+    try {
+      final message = await _repository.resendVerification(email);
+      state = state.copyWith(isSubmitting: false, clearError: true);
+      return message;
+    } catch (error) {
+      state = state.copyWith(
+        isSubmitting: false,
+        errorMessage: friendlyError(error),
+      );
+      return null;
     }
   }
 

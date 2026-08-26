@@ -22,7 +22,7 @@ class AuthRepository {
     return _persistAuth(response);
   }
 
-  Future<AuthTokens> register({
+  Future<String> register({
     required String firstName,
     required String lastName,
     required String email,
@@ -41,7 +41,21 @@ class AuthRepository {
         'confirmPassword': confirmPassword,
       },
     );
-    return _persistAuth(response);
+
+    return asJson(response)['message']?.toString() ??
+        'Cuenta creada correctamente. Revisa tu correo electrónico.';
+  }
+
+  Future<String> resendVerification(String email) async {
+    final response = await _api.post(
+      '${ApiPaths.auth}/resend-verification',
+      data: {
+        'email': email.trim(),
+      },
+    );
+
+    return asJson(response)['message']?.toString() ??
+        'Si tu cuenta está pendiente, recibirás un nuevo correo.';
   }
 
   Future<AppUser> restoreSession() async {

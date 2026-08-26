@@ -51,7 +51,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/cargando',
         builder: (context, state) => const _SplashPage(),
       ),
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) {
+          return LoginPage(
+            registrationPending:
+                state.uri.queryParameters['registro'] == 'pendiente',
+            initialEmail:
+                state.uri.queryParameters['email'] ?? '',
+          );
+        },
+      ),
       GoRoute(
         path: '/registro',
         builder: (context, state) => const RegisterPage(),
