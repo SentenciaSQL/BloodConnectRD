@@ -153,6 +153,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/solicitudes',
                 builder: (context, state) => const BloodRequestsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'crear',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const CreateBloodRequestPage(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) {
+                      final requestId = int.tryParse(state.pathParameters['id'] ?? '');
+
+                      if (requestId == null) {
+                        return const Scaffold(
+                          body: Center(
+                            child: Text('Solicitud no válida'),
+                          ),
+                        );
+                      }
+
+                      return BloodRequestDetailPage(requestId: requestId);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
