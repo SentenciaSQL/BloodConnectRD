@@ -4,10 +4,11 @@ import com.bloodconnect.auth.entity.PasswordResetToken;
 import com.bloodconnect.auth.repository.PasswordResetTokenRepository;
 import com.bloodconnect.exception.BadRequestException;
 import com.bloodconnect.user.entity.User;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -23,7 +24,6 @@ import java.util.UUID;
 public class PasswordResetService {
 
     private final PasswordResetTokenRepository tokenRepository;
-    private final JavaMailSender mailSender;
 
     @Value("${bloodconnect.password-reset.expiration-minutes:30}")
     private long expirationMinutes;
@@ -31,7 +31,13 @@ public class PasswordResetService {
     @Value("${bloodconnect.password-reset.url}")
     private String resetUrl;
 
-    @Value("${spring.mail.username}")
+    @Value("${bloodconnect.password-reset.mail-enabled:false}")
+    private boolean mailEnabled;
+
+    @Value("${resend.api-key}")
+    private String resendApiKey;
+
+    @Value("${bloodconnect.mail.from}")
     private String from;
 
     public void createAndSend(User user) {
@@ -59,34 +65,45 @@ public class PasswordResetService {
                 + "token="
                 + rawToken;
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(user.getEmail());
-        message.setSubject(
-                "Recupera tu contraseña de BloodConnect RD"
-        );
-        message.setText(
+        if (!mailEnabled) {
+            System.out.println(
+                    "Enlace de recuperación: " + link
+            );
+            return;
+        }
+
+        String body =
                 "Hola " + user.getFirstName() + ",\n\n"
-                        + "Puedes restablecer tu contraseña aquí:\n"
+                        + "Recibimos una solicitud para restablecer "
+                        + "la contraseña de tu cuenta de BloodConnect RD.\n\n"
+                        + "Puedes crear una nueva contraseña utilizando "
+                        + "el siguiente enlace:\n\n"
                         + link
                         + "\n\nEste enlace vence en "
                         + expirationMinutes
-                        + " minutos."
-        );
+                        + " minutos y solo puede utilizarse una vez.\n\n"
+                        + "Si no solicitaste este cambio, puedes ignorar "
+                        + "este mensaje.\n\n"
+                        + "Este es un mensaje automático. "
+                        + "Por favor, no respondas a este correo.";
+
+        CreateEmailOptions email = CreateEmailOptions.builder()
+                .from(from)
+                .to(user.getEmail())
+                .subject(
+                        "Recupera tu contraseña de BloodConnect RD"
+                )
+                .text(body)
+                .build();
 
         try {
-            mailSender.send(message);
-            System.out.println(
-                    "Correo de recuperación enviado correctamente a: "
-                            + user.getEmail()
+            Resend resend = new Resend(resendApiKey);
+            resend.emails().send(email);
+        } catch (ResendException exception) {
+            throw new IllegalStateException(
+                    "No se pudo enviar el correo de recuperación",
+                    exception
             );
-        } catch (Exception exception) {
-            System.err.println(
-                    "ERROR ENVIANDO CORREO: "
-                            + exception.getMessage()
-            );
-            exception.printStackTrace();
-            throw exception;
         }
     }
 
