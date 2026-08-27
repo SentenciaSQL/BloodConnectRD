@@ -37,6 +37,8 @@
 	<string>Usamos tu ubicación para mostrar solicitudes y centros de donación cercanos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Usamos tu ubicación solo cuando buscas solicitudes o centros cercanos.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Usamos la autenticación biométrica para proteger el acceso a tu cuenta.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

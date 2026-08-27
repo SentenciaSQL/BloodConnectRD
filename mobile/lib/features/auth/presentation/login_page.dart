@@ -40,10 +40,55 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     FocusScope.of(context).unfocus();
+
+    final controller = ref.read(authControllerProvider.notifier);
+
+    final success = await controller.login(
+      email: _email.text,
+      password: _password.text,
+    );
+
+    if (!success || !mounted) return;
+
+    final fingerprintAvailable = await controller.canEnableFingerprint();
+
+    if (fingerprintAvailable && mounted) {
+      final enable = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Activar acceso con huella'),
+          content: const Text(
+            '¿Quieres usar tu huella para ingresar más rápido la próxima vez?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Ahora no'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Activar'),
+            ),
+          ],
+        ),
+      );
+
+      if (enable == true) {
+        await controller.enableFingerprint();
+      }
+    }
+
+    await controller.completeLogin();
+
+    if (mounted) context.go('/');
+  }
+
+  Future<void> _loginWithFingerprint() async {
     final success = await ref
         .read(authControllerProvider.notifier)
-        .login(email: _email.text, password: _password.text);
+        .loginWithFingerprint();
     if (success && mounted) context.go('/');
   }
 
@@ -186,17 +231,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       isLoading: auth.isSubmitting,
                       onPressed: _submit,
                     ),
+                    if (auth.fingerprintLoginAvailable) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: auth.isSubmitting
+                              ? null
+                              : _loginWithFingerprint,
+                          icon: const Icon(Icons.fingerprint),
+                          label: const Text('Ingresar con huella'),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Center(
                       child: TextButton(
                         onPressed: auth.isSubmitting
                             ? null
                             : () {
-                                ref
-                                    .read(authControllerProvider.notifier)
-                                    .clearError();
-                                context.go('/registro');
-                              },
+                          ref
+                              .read(authControllerProvider.notifier)
+                              .clearError();
+                          context.go('/registro');
+                        },
                         child: const Text('¿No tienes cuenta? Regístrate'),
                       ),
                     ),
@@ -205,12 +263,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         onPressed: auth.isSubmitting
                             ? null
                             : () {
-                                ref
-                                    .read(authControllerProvider.notifier)
-                                    .clearError();
+                          ref
+                              .read(authControllerProvider.notifier)
+                              .clearError();
 
-                                context.go('/recuperar-contrasena');
-                              },
+                          context.go('/recuperar-contrasena');
+                        },
                         child: const Text('¿Olvidaste tu contraseña?'),
                       ),
                     ),

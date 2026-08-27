@@ -64,6 +64,17 @@ class AuthRepository {
     return me();
   }
 
+  Future<bool> hasStoredSession() async {
+    final token = await _storage.readRefreshToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  Future<bool> isFingerprintEnabled() => _storage.isFingerprintEnabled();
+
+  Future<void> setFingerprintEnabled(bool enabled) {
+    return _storage.setFingerprintEnabled(enabled);
+  }
+
   Future<AppUser> me() async {
     final response = await _api.get('${ApiPaths.auth}/me');
     return AppUser.fromJson(asJson(response));
