@@ -24,19 +24,19 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>GMSApiKey</key>
 	<string>$(MAPS_API_KEY_IOS)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Usamos tu ubicación para mostrar solicitudes y centros de donación cercanos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Usamos tu ubicación solo cuando buscas solicitudes o centros cercanos.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Usamos tu ubicación para mostrar solicitudes y centros de donación cercanos.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -60,6 +60,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
