@@ -94,3 +94,4 @@ coverage/
 *.tmp
 *.bak
 .cache/
+mobile/android/.kotlin/sessions/kotlin-compiler-13404269628303341584.salive
