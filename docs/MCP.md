@@ -166,7 +166,9 @@ mvn spring-boot:run
 
 En IntelliJ: Run → Edit Configurations → Environment variables → `MCP_ENABLED=true` (y las de PostgreSQL) → Apply → **Restart**.
 
-**Ventana 2 — comprobar estado y hacer initialize:**
+**Ventana 2 — comprobar estado y llamar tools**
+
+`initialize` responde JSON y `Invoke-WebRequest` puede leerlo. `tools/list` y `tools/call` responden **SSE** (`text/event-stream`). Windows PowerShell 5.1 (`Invoke-WebRequest` / `Invoke-RestMethod`) no sabe leer ese stream y falla con *Unable to read data from the transport connection: The connection was closed.* Use **`curl.exe`** (no el alias `curl`, que en PowerShell 5.1 es `Invoke-WebRequest`) o el MCP Inspector.
 
 ```powershell
 # Si enabled es false, el JVM no arrancó con MCP_ENABLED=true. Vuelva a la ventana 1.
@@ -175,38 +177,42 @@ Invoke-RestMethod -Uri "http://localhost:8080/api/mcp/status"
 $login = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/auth/login" `
   -ContentType "application/json" `
   -Body '{"email":"admin@bloodconnect.do","password":"Admin123!"}'
+$token = $login.accessToken
 
-$headers = @{
-  Authorization = "Bearer $($login.accessToken)"
-  Accept = "application/json, text/event-stream"
-}
+# Handshake JSON (sí se puede ver el cuerpo). Guarde el header Mcp-Session-Id.
+curl.exe -sD init-headers.txt -o init-body.txt -X POST "http://localhost:8080/mcp" `
+  -H "Authorization: Bearer $token" `
+  -H "Accept: application/json, text/event-stream" `
+  -H "Content-Type: application/json" `
+  --data-raw '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"dev"}}}'
+Get-Content init-body.txt
+$session = (Select-String -Path init-headers.txt -Pattern '(?i)mcp-session-id:\s*(.+)').Matches.Groups[1].Value.Trim()
+"session=$session"
 
-# No use GET /mcp para el handshake. Ese GET es SSE y, autenticado, responde 405 con una pista.
-# Invoke-RestMethod -Method Get -Uri "http://localhost:8080/mcp" -Headers $headers
+curl.exe -s -X POST "http://localhost:8080/mcp" `
+  -H "Authorization: Bearer $token" `
+  -H "Accept: application/json, text/event-stream" `
+  -H "Content-Type: application/json" `
+  -H "mcp-session-id: $session" `
+  --data-raw '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
-$initialize = @{
-  jsonrpc = "2.0"
-  id = 1
-  method = "initialize"
-  params = @{
-    protocolVersion = "2025-03-26"
-    capabilities = @{}
-    clientInfo = @{ name = "powershell"; version = "dev" }
-  }
-} | ConvertTo-Json -Depth 6 -Compress
+# SSE: event: message + data: {jsonrpc...}. Deben aparecer las 4 tools.
+curl.exe -sN -X POST "http://localhost:8080/mcp" `
+  -H "Authorization: Bearer $token" `
+  -H "Accept: application/json, text/event-stream" `
+  -H "Content-Type: application/json" `
+  -H "mcp-session-id: $session" `
+  --data-raw '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 
-$initResponse = Invoke-WebRequest -Method Post -Uri "http://localhost:8080/mcp" `
-  -Headers $headers -ContentType "application/json" -Body $initialize
-$initResponse.Content
-$sessionId = $initResponse.Headers["mcp-session-id"]
-
-$headers["mcp-session-id"] = $sessionId
-$toolsList = '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
-(Invoke-WebRequest -Method Post -Uri "http://localhost:8080/mcp" `
-  -Headers $headers -ContentType "application/json" -Body $toolsList).Content
+curl.exe -sN -X POST "http://localhost:8080/mcp" `
+  -H "Authorization: Bearer $token" `
+  -H "Accept: application/json, text/event-stream" `
+  -H "Content-Type: application/json" `
+  -H "mcp-session-id: $session" `
+  --data-raw '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"check_blood_compatibility","arguments":{"donorBloodType":"O-","recipientBloodType":"A+"}}}'
 ```
 
-Si `GET /mcp` autenticado responde **503**, MCP sigue apagado en el proceso en ejecución. Si responde **405**, el servidor está activo: use el `POST` de `initialize` de arriba.
+Si `GET /mcp` autenticado responde **503**, MCP sigue apagado en el proceso en ejecución. Si responde **405**, el servidor está activo: use el `POST` de `initialize`. El cliente previsto para una prueba completa es el Inspector (`npx @modelcontextprotocol/inspector`).
 
 ### Perfil STDIO (solo desarrollo)
 
@@ -243,6 +249,7 @@ Compruebe primero `GET /api/mcp/status`. En Windows el detalle está en la secci
    - `Accept: application/json, text/event-stream` (si falta, el backend lo completa)
 3. Cuerpo `initialize`, luego `tools/list` y `tools/call`.
 4. Si `initialize` responde el header `mcp-session-id`, reutilizarlo en las siguientes llamadas.
+5. En Postman, para `tools/list` / `tools/call` puede ver el cuerpo SSE (`event: message` + `data: {...}`). Windows PowerShell 5.1 no lo lee; use `curl.exe` o el Inspector.
 
 Un 401 con `"Se requiere autenticación..."` indica que falta el Bearer. Un 500 genérico de la API REST no debe aparecer en `/mcp`; si ocurre, revise el log del backend.
 
