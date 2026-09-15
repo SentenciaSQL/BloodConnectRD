@@ -1,22 +1,30 @@
 package com.bloodconnect.exception;
 
+import io.modelcontextprotocol.spec.McpError;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -70,9 +78,60 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, "No tiene permisos para realizar esta acción", request.getRequestURI());
     }
 
+    @ExceptionHandler(McpError.class)
+    public ResponseEntity<?> handleMcpError(McpError ex, HttpServletRequest request) {
+        if (isMcp(request)) {
+            return jsonRpcError(HttpStatus.BAD_REQUEST, -32600, safeMessage(ex));
+        }
+        return build(HttpStatus.BAD_REQUEST, "La solicitud MCP no es válida", request.getRequestURI());
+    }
+
+    @ExceptionHandler({HttpMessageNotWritableException.class, HttpMediaTypeNotAcceptableException.class})
+    public ResponseEntity<?> handleMcpMedia(Exception ex, HttpServletRequest request) {
+        log.warn("Error de negociación HTTP en {}: {}", request.getRequestURI(), ex.getMessage());
+        if (isMcp(request)) {
+            return jsonRpcError(
+                    HttpStatus.BAD_REQUEST,
+                    -32600,
+                    "El endpoint MCP requiere Accept: application/json, text/event-stream"
+            );
+        }
+        return build(HttpStatus.BAD_REQUEST, "La solicitud contiene un valor o formato no válido", request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest request) {
+    public ResponseEntity<?> handleGeneric(Exception ex, HttpServletRequest request) {
+        log.error("Error no controlado en {}", request.getRequestURI(), ex);
+        if (isMcp(request)) {
+            return jsonRpcError(HttpStatus.INTERNAL_SERVER_ERROR, -32603, safeMessage(ex));
+        }
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Ha ocurrido un error interno. Intente nuevamente más tarde.", request.getRequestURI());
+    }
+
+    private boolean isMcp(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path != null && (path.equals("/mcp") || path.startsWith("/mcp/"));
+    }
+
+    private ResponseEntity<Map<String, Object>> jsonRpcError(HttpStatus status, int code, String message) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("code", code);
+        error.put("message", message);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("jsonrpc", "2.0");
+        body.put("id", null);
+        body.put("error", error);
+        return ResponseEntity.status(status)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body);
+    }
+
+    private String safeMessage(Exception ex) {
+        String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            return ex.getClass().getSimpleName();
+        }
+        return message.length() > 300 ? message.substring(0, 300) : message;
     }
 
     private String formatFieldError(FieldError error) {
