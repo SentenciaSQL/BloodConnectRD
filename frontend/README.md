@@ -29,7 +29,7 @@ npm run build
 
 **Públicas:** `/`, `/login`, `/registro`, `/donantes`, `/solicitudes`, `/solicitudes/:id`, `/centros`, `/como-donar`, `/compatibilidad`, `/preguntas-frecuentes`, `/eliminacion-de-cuenta`
 
-**Privadas:** `/dashboard`, `/dashboard/perfil`, `/dashboard/solicitudes`, `/dashboard/donaciones`, `/dashboard/notificaciones`
+**Privadas:** `/dashboard`, `/dashboard/perfil`, `/dashboard/solicitudes`, `/dashboard/donaciones`, `/dashboard/mensajes`, `/dashboard/asistente`, `/dashboard/notificaciones`
 
 **Admin:** `/admin`, `/admin/usuarios`, `/admin/donantes`, `/admin/solicitudes`, `/admin/donaciones`, `/admin/centros`, `/admin/estadisticas`
 

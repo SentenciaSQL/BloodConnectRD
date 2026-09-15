@@ -48,7 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/mcp", "/mcp/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/mcp/status").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/mcp/status", "/api/assistant/status").permitAll()
+                        .requestMatchers("/api/assistant/**").authenticated()
                         .requestMatchers(
                                 "/api/auth/logout",
                                 "/api/auth/me",

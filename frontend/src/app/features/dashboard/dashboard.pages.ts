@@ -90,6 +90,9 @@ function normalizePhone(value: string): string {
       <a routerLink="/dashboard/notificaciones" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700">
         Ver notificaciones
       </a>
+      <a routerLink="/dashboard/asistente" class="rounded-xl border border-ink-200 bg-white p-5 font-bold hover:border-brand-300 hover:text-brand-700 sm:col-span-3">
+        Preguntar al asistente (compatibilidad, solicitudes y centros)
+      </a>
     </div>
 
     <section class="mt-12">

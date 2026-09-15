@@ -61,18 +61,15 @@ No modificar migraciones ya aplicadas; crear una nueva si el esquema cambia.
 
 ## Módulos
 
-`auth`, `user`, `donor`, `bloodrequest`, `donationresponse`, `donation`, `donationcenter`, `conversation`, `location`, `notification`, `device`, `statistics`, `admin`, `security`, `config`, `common`, `exception`, `mcp`
+`auth`, `user`, `donor`, `bloodrequest`, `donationresponse`, `donation`, `donationcenter`, `conversation`, `location`, `notification`, `device`, `statistics`, `admin`, `security`, `config`, `common`, `exception`, `mcp`, `assistant`
 
 ## MCP
 
-Servidor Model Context Protocol de solo lectura (solicitudes activas, centros cercanos, compatibilidad ABO/Rh). Desactivado por defecto (`MCP_ENABLED=false`). No habilitar en producción hasta completar OAuth 2.1.
+Servidor Model Context Protocol de solo lectura (solicitudes activas, centros cercanos, compatibilidad ABO/Rh). Desactivado por defecto (`MCP_ENABLED=false`). No habilitar `/mcp` en producción hasta completar OAuth 2.1.
 
-- Estado (público): `GET http://localhost:8080/api/mcp/status`
-- Handshake: **POST** `http://localhost:8080/mcp` con JSON-RPC `initialize` y JWT Bearer. `GET /mcp` es SSE, no el handshake.
-- `tools/list` y `tools/call` responden SSE: en Windows PowerShell 5.1 use `curl.exe`, no `Invoke-WebRequest`.
-- En Windows PowerShell use `$env:MCP_ENABLED = "true"` **antes** de `mvn spring-boot:run` (o en la Run Configuration de IntelliJ) y reinicie el proceso. `set MCP_ENABLED=true` no aplica.
-
-Detalle: [docs/MCP.md](../docs/MCP.md).
+- Estado MCP: `GET http://localhost:8080/api/mcp/status`
+- Chat web (Fase 2): `GET /api/assistant/status` y `POST /api/assistant/ask`. En Angular: `/dashboard/asistente`. `ASSISTANT_ENABLED=true` en el mismo proceso JVM.
+- El navegador no usa Streamable HTTP. Detalle: [docs/MCP.md](../docs/MCP.md).
 
 ## Seed
 

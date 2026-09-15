@@ -41,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "jwt.refresh-expiration-ms=604800000",
         "cors.allowed-origins=http://localhost:4200",
         "bloodconnect.mcp.enabled=false",
+        "bloodconnect.assistant.enabled=false",
         "spring.ai.mcp.server.enabled=false"
 })
 class BloodRequestControllerRestContractTest {

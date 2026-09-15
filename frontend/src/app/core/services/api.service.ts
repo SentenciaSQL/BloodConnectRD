@@ -18,6 +18,8 @@ import {
   DonationResponse,
   Donor,
   DonorPayload,
+  AssistantAskResponse,
+  AssistantStatus,
   Municipality,
   Notification,
   PageResponse,
@@ -261,6 +263,21 @@ export class ApiService {
 
   dashboardStatistics() {
     return this.http.get<DashboardStatistics>(`${this.base}/admin/statistics/dashboard`);
+  }
+
+  assistantStatus() {
+    return this.http.get<AssistantStatus>(`${this.base}/assistant/status`);
+  }
+
+  askAssistant(
+    message: string,
+    coordinates?: { latitude: number; longitude: number } | null,
+  ) {
+    return this.http.post<AssistantAskResponse>(`${this.base}/assistant/ask`, {
+      message,
+      latitude: coordinates?.latitude,
+      longitude: coordinates?.longitude,
+    });
   }
 
   private params(values: Record<string, unknown>): HttpParams {
