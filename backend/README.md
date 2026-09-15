@@ -69,6 +69,7 @@ Servidor Model Context Protocol de solo lectura (solicitudes activas, centros ce
 
 - Estado (público): `GET http://localhost:8080/api/mcp/status`
 - Handshake: **POST** `http://localhost:8080/mcp` con JSON-RPC `initialize` y JWT Bearer. `GET /mcp` es SSE, no el handshake.
+- `tools/list` y `tools/call` responden SSE: en Windows PowerShell 5.1 use `curl.exe`, no `Invoke-WebRequest`.
 - En Windows PowerShell use `$env:MCP_ENABLED = "true"` **antes** de `mvn spring-boot:run` (o en la Run Configuration de IntelliJ) y reinicie el proceso. `set MCP_ENABLED=true` no aplica.
 
 Detalle: [docs/MCP.md](../docs/MCP.md).
