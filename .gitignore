@@ -13,7 +13,6 @@
 Thumbs.db
 
 # IDEs
-.idea/
 .vscode/
 *.iml
 *.ipr
