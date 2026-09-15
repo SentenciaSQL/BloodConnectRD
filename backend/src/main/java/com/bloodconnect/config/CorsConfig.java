@@ -24,6 +24,12 @@ public class CorsConfig {
                         .allowedHeaders("*")
                         .allowCredentials(true)
                         .maxAge(3600);
+                registry.addMapping("/mcp")
+                        .allowedOrigins(origins)
+                        .allowedMethods("GET", "POST", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true)
+                        .maxAge(3600);
                 registry.addMapping("/mcp/**")
                         .allowedOrigins(origins)
                         .allowedMethods("GET", "POST", "DELETE", "OPTIONS")

@@ -65,7 +65,13 @@ No modificar migraciones ya aplicadas; crear una nueva si el esquema cambia.
 
 ## MCP
 
-Servidor Model Context Protocol de solo lectura (solicitudes activas, centros cercanos, compatibilidad ABO/Rh). Desactivado por defecto (`MCP_ENABLED=false`). No habilitar en producción hasta completar OAuth 2.1. Detalle: [docs/MCP.md](../docs/MCP.md).
+Servidor Model Context Protocol de solo lectura (solicitudes activas, centros cercanos, compatibilidad ABO/Rh). Desactivado por defecto (`MCP_ENABLED=false`). No habilitar en producción hasta completar OAuth 2.1.
+
+- Estado (público): `GET http://localhost:8080/api/mcp/status`
+- Handshake: **POST** `http://localhost:8080/mcp` con JSON-RPC `initialize` y JWT Bearer. `GET /mcp` es SSE, no el handshake.
+- En Windows PowerShell use `$env:MCP_ENABLED = "true"` **antes** de `mvn spring-boot:run` (o en la Run Configuration de IntelliJ) y reinicie el proceso. `set MCP_ENABLED=true` no aplica.
+
+Detalle: [docs/MCP.md](../docs/MCP.md).
 
 ## Seed
 

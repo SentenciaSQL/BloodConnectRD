@@ -1,5 +1,6 @@
 package com.bloodconnect.mcp.config;
 
+import com.bloodconnect.mcp.security.McpProtocolHintFilter;
 import com.bloodconnect.mcp.security.McpRateLimitFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -16,6 +17,18 @@ public class McpFilterConfiguration {
     @ConditionalOnBean(McpRateLimitFilter.class)
     public FilterRegistrationBean<McpRateLimitFilter> mcpRateLimitRegistration(McpRateLimitFilter filter) {
         FilterRegistrationBean<McpRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public McpProtocolHintFilter mcpProtocolHintFilter(McpProperties mcpProperties) {
+        return new McpProtocolHintFilter(mcpProperties);
+    }
+
+    @Bean
+    public FilterRegistrationBean<McpProtocolHintFilter> mcpProtocolHintRegistration(McpProtocolHintFilter filter) {
+        FilterRegistrationBean<McpProtocolHintFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }

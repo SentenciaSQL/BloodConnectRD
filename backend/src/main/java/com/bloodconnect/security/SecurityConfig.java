@@ -1,5 +1,6 @@
 package com.bloodconnect.security;
 
+import com.bloodconnect.mcp.security.McpProtocolHintFilter;
 import com.bloodconnect.mcp.security.McpRateLimitFilter;
 import com.bloodconnect.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.nio.charset.StandardCharsets;
@@ -31,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ObjectProvider<McpProtocolHintFilter> mcpProtocolHintFilter;
     private final ObjectProvider<McpRateLimitFilter> mcpRateLimitFilter;
 
     @Bean
@@ -45,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/mcp", "/mcp/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/mcp/status").permitAll()
                         .requestMatchers(
                                 "/api/auth/logout",
                                 "/api/auth/me",
@@ -99,6 +103,11 @@ public class SecurityConfig {
                         })
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        McpProtocolHintFilter protocolHintFilter = mcpProtocolHintFilter.getIfAvailable();
+        if (protocolHintFilter != null) {
+            http.addFilterAfter(protocolHintFilter, AuthorizationFilter.class);
+        }
 
         McpRateLimitFilter rateLimitFilter = mcpRateLimitFilter.getIfAvailable();
         if (rateLimitFilter != null) {

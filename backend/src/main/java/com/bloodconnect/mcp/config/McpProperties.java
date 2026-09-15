@@ -14,6 +14,33 @@ public record McpProperties(
         double maxRadiusKm,
         RateLimit rateLimit
 ) {
+    public McpProperties {
+        if (serverName == null || serverName.isBlank()) {
+            serverName = "bloodconnectrd-mcp";
+        }
+        if (serverVersion == null || serverVersion.isBlank()) {
+            serverVersion = "1.0.0";
+        }
+        if (endpoint == null || endpoint.isBlank()) {
+            endpoint = "/mcp";
+        }
+        if (maxPageSize <= 0) {
+            maxPageSize = 50;
+        }
+        if (defaultPageSize <= 0) {
+            defaultPageSize = 20;
+        }
+        if (defaultRadiusKm <= 0) {
+            defaultRadiusKm = 25;
+        }
+        if (maxRadiusKm <= 0) {
+            maxRadiusKm = 100;
+        }
+        if (rateLimit == null) {
+            rateLimit = new RateLimit(true, 60);
+        }
+    }
+
     public record RateLimit(
             boolean enabled,
             int requestsPerMinute

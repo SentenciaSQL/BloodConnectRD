@@ -130,8 +130,12 @@ Hasta implementar un Authorization Server OAuth 2.1 (o un gateway que lo haga), 
 ## Cómo ejecutar en local
 
 1. PostgreSQL y backend habituales (`docs` del README raíz).
-2. Login REST para obtener un access token.
-3. Arrancar con MCP activo:
+2. Arrancar **con MCP activo en el mismo proceso JVM**. Las variables de entorno se leen al arrancar Spring Boot; cambiarlas después en otra ventana no afecta al proceso que ya corre.
+3. Login REST para obtener un access token.
+4. Comprobar `GET /api/mcp/status` (`enabled` debe ser `true`) **antes** de llamar a `/mcp`.
+5. Usar **POST** `/mcp` con JSON-RPC `initialize`. `GET /mcp` es el canal SSE y exige `mcp-session-id`.
+
+### Linux / macOS
 
 ```bash
 cd backend
@@ -144,6 +148,65 @@ mvn spring-boot:run
 ```
 
 El endpoint Streamable HTTP queda en `http://localhost:8080/mcp`.
+
+### Windows PowerShell
+
+`export` y `set` no aplican. `set MCP_ENABLED=true` es de `cmd.exe` y **no** rellena `$env:MCP_ENABLED`. Asignar `$env:MCP_ENABLED` con el backend ya arrancado (IntelliJ u otra ventana) **tampoco** lo activa: hay que **reiniciar** el JVM.
+
+**Ventana 1 — arrancar el backend** (pare el proceso anterior con Ctrl+C o Stop en IntelliJ):
+
+```powershell
+cd C:\Users\PC\Documents\SpringBoot\BloodConnectRD\backend
+$env:DATABASE_URL = "jdbc:postgresql://127.0.0.1:5432/bloodconnect_db"
+$env:DATABASE_USERNAME = "postgres"
+$env:DATABASE_PASSWORD = "postgres"
+$env:MCP_ENABLED = "true"
+mvn spring-boot:run
+```
+
+En IntelliJ: Run → Edit Configurations → Environment variables → `MCP_ENABLED=true` (y las de PostgreSQL) → Apply → **Restart**.
+
+**Ventana 2 — comprobar estado y hacer initialize:**
+
+```powershell
+# Si enabled es false, el JVM no arrancó con MCP_ENABLED=true. Vuelva a la ventana 1.
+Invoke-RestMethod -Uri "http://localhost:8080/api/mcp/status"
+
+$login = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/auth/login" `
+  -ContentType "application/json" `
+  -Body '{"email":"admin@bloodconnect.do","password":"Admin123!"}'
+
+$headers = @{
+  Authorization = "Bearer $($login.accessToken)"
+  Accept = "application/json, text/event-stream"
+}
+
+# No use GET /mcp para el handshake. Ese GET es SSE y, autenticado, responde 405 con una pista.
+# Invoke-RestMethod -Method Get -Uri "http://localhost:8080/mcp" -Headers $headers
+
+$initialize = @{
+  jsonrpc = "2.0"
+  id = 1
+  method = "initialize"
+  params = @{
+    protocolVersion = "2025-03-26"
+    capabilities = @{}
+    clientInfo = @{ name = "powershell"; version = "dev" }
+  }
+} | ConvertTo-Json -Depth 6 -Compress
+
+$initResponse = Invoke-WebRequest -Method Post -Uri "http://localhost:8080/mcp" `
+  -Headers $headers -ContentType "application/json" -Body $initialize
+$initResponse.Content
+$sessionId = $initResponse.Headers["mcp-session-id"]
+
+$headers["mcp-session-id"] = $sessionId
+$toolsList = '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+(Invoke-WebRequest -Method Post -Uri "http://localhost:8080/mcp" `
+  -Headers $headers -ContentType "application/json" -Body $toolsList).Content
+```
+
+Si `GET /mcp` autenticado responde **503**, MCP sigue apagado en el proceso en ejecución. Si responde **405**, el servidor está activo: use el `POST` de `initialize` de arriba.
 
 ### Perfil STDIO (solo desarrollo)
 
@@ -168,6 +231,8 @@ Conexión:
 - Header: `Authorization: Bearer <ACCESS_TOKEN>`
 
 Debe listar las cuatro tools e invocarlas.
+
+Compruebe primero `GET /api/mcp/status`. En Windows el detalle está en la sección PowerShell de «Cómo ejecutar en local».
 
 ### Postman e IntelliJ HTTP Client
 
