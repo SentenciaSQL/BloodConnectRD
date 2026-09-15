@@ -305,6 +305,22 @@ export interface ApiError {
   errors?: Record<string, string>;
 }
 
+export interface AssistantStatus {
+  enabled: boolean;
+  hint: string;
+}
+
+export interface AssistantLink {
+  label: string;
+  path: string;
+}
+
+export interface AssistantAskResponse {
+  reply: string;
+  toolUsed: string | null;
+  links: AssistantLink[];
+}
+
 export function requestPendingUnits(request: Pick<BloodRequest, 'unitsRequired' | 'completedUnits' | 'pendingUnits'>): number {
   if (request.pendingUnits != null) return request.pendingUnits;
   return Math.max(0, request.unitsRequired - request.completedUnits);

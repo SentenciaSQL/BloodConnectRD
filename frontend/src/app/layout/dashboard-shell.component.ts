@@ -122,6 +122,7 @@ export class DashboardShellComponent implements OnInit {
     { path: '/dashboard/solicitudes', label: 'Mis solicitudes', icon: '♡', exact: false },
     { path: '/dashboard/donaciones', label: 'Mis donaciones', icon: '✓', exact: false },
     { path: '/dashboard/mensajes', label: 'Mensajes', icon: '✉', exact: false },
+    { path: '/dashboard/asistente', label: 'Asistente', icon: '?', exact: false },
     { path: '/dashboard/notificaciones', label: 'Notificaciones', icon: '●', exact: false },
   ];
 

@@ -1,8 +1,9 @@
-# MCP de BloodConnect RD (Fase 1)
+# MCP de BloodConnect RD
 
 Servidor **Model Context Protocol** de solo lectura embebido en el backend Spring Boot. Permite que un asistente de IA consulte solicitudes activas de sangre, centros de donación cercanos y compatibilidad ABO/Rh **sin** acceder a PostgreSQL ni a datos personales sensibles.
 
-Esta fase **no** incluye chatbot, proveedor de LLM ni herramientas de escritura.
+- **Fase 1:** endpoint Streamable HTTP `/mcp` para clientes MCP (Cursor, Inspector). Sin LLM ni tools de escritura.
+- **Fase 2:** chat en Angular (`/dashboard/asistente`). El navegador **no** habla JSON-RPC; llama `POST /api/assistant/ask` y el backend reutiliza `McpQueryService`.
 
 ## Problema que resuelve
 
@@ -338,6 +339,7 @@ No commitear tokens. El access JWT de esta fase caduca (`JWT_EXPIRATION`).
 | `MCP_MAX_RADIUS_KM` | `100` | Radio máximo MCP |
 | `MCP_RATE_LIMIT_ENABLED` | `true` | Rate limit in-memory |
 | `MCP_RATE_LIMIT_PER_MINUTE` | `60` | Tope por usuario/IP |
+| `ASSISTANT_ENABLED` | `false` | Activa el chat REST de Angular (`/api/assistant/ask`) |
 
 No hay secretos MCP nuevos. Se reutiliza `JWT_SECRET` (nunca en el repositorio).
 
@@ -354,6 +356,38 @@ El rate limit es un filtro in-memory por usuario autenticado (o IP). No sustituy
 - Coordenadas de solicitud son las que ya expone la API pública de hospitales; no se añaden direcciones residenciales.
 - Logs no deben incluir tokens. El filtro JWT existente no los registra.
 - No hay SQL generado por el modelo: solo parámetros tipados hacia services.
+
+## Fase 2 — cómo lo usa la persona en el frontend
+
+El usuario de Angular **no** abre Postman ni envía `initialize`. Entra a **Asistente** (menú de cuenta o `/dashboard/asistente`), escribe en español y recibe una respuesta con enlaces a solicitudes, centros o compatibilidad.
+
+```text
+Usuario Angular  --JWT REST-->  POST /api/assistant/ask
+                                         |
+                                         v
+                               AssistantIntentParser (español, sin LLM)
+                                         |
+                                         v
+                                  McpQueryService  (mismas tools de Fase 1)
+```
+
+| Pregunta de ejemplo | Tool |
+|---------------------|------|
+| ¿O- puede donar a A+? | `check_blood_compatibility` |
+| Solicitudes de O+ urgentes | `list_active_blood_requests` |
+| Solicitud 12 | `get_blood_request` |
+| Centros cerca de mí | `find_nearby_donation_centers` (hace falta ubicación) |
+
+`ASSISTANT_ENABLED` es independiente de `MCP_ENABLED`. Se puede encender el chat de la web y dejar `/mcp` apagado (sigue sin OAuth 2.1).
+
+```powershell
+$env:ASSISTANT_ENABLED = "true"
+# mismo proceso que mvn spring-boot:run
+```
+
+Compruebe `GET http://localhost:8080/api/assistant/status`. Luego inicie sesión en http://localhost:4200 y abra `/dashboard/asistente`.
+
+Sin LLM: el enrutado es por palabras clave. No hay tools de escritura.
 
 ## Limitaciones de la primera versión
 
@@ -378,6 +412,9 @@ El rate limit es un filtro in-memory por usuario autenticado (o IP). No sustituy
 ## Archivos principales
 
 - `backend/src/main/java/com/bloodconnect/mcp/`
+- `backend/src/main/java/com/bloodconnect/assistant/`
+- `frontend/src/app/features/assistant/assistant.page.ts`
 - `backend/src/main/resources/db/migration/V19__mcp_audit_events.sql`
 - `backend/src/main/resources/application-mcp-stdio.properties`
 - `backend/src/test/java/com/bloodconnect/mcp/`
+- `backend/src/test/java/com/bloodconnect/assistant/`

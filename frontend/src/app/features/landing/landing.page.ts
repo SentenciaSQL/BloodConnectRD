@@ -224,6 +224,7 @@ export class LandingPage implements OnInit {
     { label: 'Santiago', path: '/solicitudes', query: { zona: 'Santiago' } },
     { label: 'Solicitudes urgentes', path: '/solicitudes', query: { urgente: 1 } },
     { label: 'Mi tipo de sangre', path: '/solicitudes', query: { compatibles: 1 } },
+    { label: 'Asistente', path: '/dashboard/asistente' },
   ];
   readonly steps = [
     {

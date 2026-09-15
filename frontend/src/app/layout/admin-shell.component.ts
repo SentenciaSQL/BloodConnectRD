@@ -90,6 +90,7 @@ export class AdminShellComponent {
     { path: '/admin/donaciones', label: 'Donaciones', exact: false },
     { path: '/admin/centros', label: 'Centros de donación', exact: false },
     { path: '/admin/estadisticas', label: 'Estadísticas', exact: false },
+    { path: '/dashboard/asistente', label: 'Asistente', exact: false },
   ];
 
   logout(): void {

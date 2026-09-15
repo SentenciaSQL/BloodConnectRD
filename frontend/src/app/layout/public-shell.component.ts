@@ -32,6 +32,7 @@ import { AuthService } from '../core/services/auth.service';
             <a routerLink="/centros" routerLinkActive="text-brand-700">Centros</a>
             <a routerLink="/compatibilidad" routerLinkActive="text-brand-700">Compatibilidad</a>
             <a routerLink="/como-donar" routerLinkActive="text-brand-700">Cómo donar</a>
+            <a routerLink="/dashboard/asistente" routerLinkActive="text-brand-700">Asistente</a>
           </nav>
 
           <div class="hidden items-center gap-3 lg:flex">
@@ -193,6 +194,7 @@ export class PublicShellComponent {
     { path: '/donantes', label: 'Donantes' },
     { path: '/centros', label: 'Centros de donación' },
     { path: '/compatibilidad', label: 'Compatibilidad' },
+    { path: '/dashboard/asistente', label: 'Asistente' },
     { path: '/como-donar', label: 'Cómo donar' },
     { path: '/preguntas-frecuentes', label: 'Preguntas frecuentes' },
     { path: '/eliminacion-de-cuenta', label: 'Eliminación de cuenta' },

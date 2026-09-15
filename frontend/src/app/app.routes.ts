@@ -153,6 +153,11 @@ export const routes: Routes = [
             (component) => component.ConversationChatPage,
           ),
       },
+      {
+        path: 'asistente',
+        loadComponent: () =>
+          import('./features/assistant/assistant.page').then((component) => component.AssistantPage),
+      },
     ],
   },
   {
