@@ -52,12 +52,20 @@ mvn clean package -DskipTests
 | V13 | confirmación de donaciones (unidades reportadas/confirmadas) |
 | V14 | conversaciones y mensajes privados asociados a solicitudes |
 | V15 | estados SENT/DELIVERED/READ de mensajes del chat |
+| V16 | coordenadas de centros de donación |
+| V17 | password reset tokens |
+| V18 | verificación de correo |
+| V19 | auditoría de invocaciones MCP (`mcp_audit_events`) |
 
 No modificar migraciones ya aplicadas; crear una nueva si el esquema cambia.
 
 ## Módulos
 
-`auth`, `user`, `donor`, `bloodrequest`, `donationresponse`, `donation`, `donationcenter`, `conversation`, `location`, `notification`, `device`, `statistics`, `admin`, `security`, `config`, `common`, `exception`
+`auth`, `user`, `donor`, `bloodrequest`, `donationresponse`, `donation`, `donationcenter`, `conversation`, `location`, `notification`, `device`, `statistics`, `admin`, `security`, `config`, `common`, `exception`, `mcp`
+
+## MCP
+
+Servidor Model Context Protocol de solo lectura (solicitudes activas, centros cercanos, compatibilidad ABO/Rh). Desactivado por defecto (`MCP_ENABLED=false`). No habilitar en producción hasta completar OAuth 2.1. Detalle: [docs/MCP.md](../docs/MCP.md).
 
 ## Seed
 

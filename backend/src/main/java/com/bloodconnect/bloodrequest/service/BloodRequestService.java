@@ -106,6 +106,37 @@ public class BloodRequestService {
                         statuses == null ? List.of() : statuses,
                         null,
                         search,
+                        false,
+                        true
+                ),
+                pageable
+        ).map(request -> toResponse(request, null, null));
+        return PageResponse.from(page);
+    }
+
+    /**
+     * Solicitudes abiertas o en progreso cuya fecha límite aún no vence.
+     * Pensado para consumidores públicos/MCP: no busca por nombre de paciente.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<BloodRequestResponse> listActive(
+            BloodType bloodType,
+            Long provinceId,
+            Long municipalityId,
+            Urgency urgency,
+            String search,
+            Pageable pageable
+    ) {
+        Page<BloodRequestResponse> page = bloodRequestRepository.findAll(
+                buildSpecification(
+                        bloodType == null ? List.of() : List.of(bloodType),
+                        provinceId,
+                        municipalityId,
+                        urgency == null ? List.of() : List.of(urgency),
+                        ACTIVE_STATUSES,
+                        null,
+                        search,
+                        true,
                         false
                 ),
                 pageable
@@ -129,6 +160,7 @@ public class BloodRequestService {
                         ACTIVE_STATUSES,
                         null,
                         null,
+                        true,
                         true
                 ),
                 pageable
@@ -149,6 +181,7 @@ public class BloodRequestService {
                         ACTIVE_STATUSES,
                         null,
                         null,
+                        true,
                         true
                 ),
                 pageable
@@ -172,6 +205,7 @@ public class BloodRequestService {
                                 ACTIVE_STATUSES,
                                 null,
                                 null,
+                                true,
                                 true
                         ),
                         Sort.by(Sort.Direction.DESC, "urgency", "createdAt")
@@ -194,7 +228,8 @@ public class BloodRequestService {
                         List.of(),
                         principal.getId(),
                         null,
-                        false
+                        false,
+                        true
                 ),
                 pageable
         ).map(request -> toResponse(request, null, null));
@@ -272,7 +307,8 @@ public class BloodRequestService {
             List<RequestStatus> statuses,
             Long createdById,
             String search,
-            boolean futureOnly
+            boolean futureOnly,
+            boolean includePatientNameInSearch
     ) {
         Specification<BloodRequest> specification = (root, query, cb) -> cb.conjunction();
         if (!bloodTypes.isEmpty()) {
@@ -295,12 +331,20 @@ public class BloodRequestService {
         }
         if (search != null && !search.isBlank()) {
             String pattern = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
-            specification = specification.and((root, query, cb) -> cb.or(
-                    cb.like(cb.lower(root.get("patientName")), pattern),
-                    cb.like(cb.lower(root.get("hospital")), pattern),
-                    cb.like(cb.lower(root.get("sector")), pattern),
-                    cb.like(cb.lower(root.get("description")), pattern)
-            ));
+            specification = specification.and((root, query, cb) -> {
+                if (includePatientNameInSearch) {
+                    return cb.or(
+                            cb.like(cb.lower(root.get("patientName")), pattern),
+                            cb.like(cb.lower(root.get("hospital")), pattern),
+                            cb.like(cb.lower(root.get("sector")), pattern),
+                            cb.like(cb.lower(root.get("description")), pattern)
+                    );
+                }
+                return cb.or(
+                        cb.like(cb.lower(root.get("hospital")), pattern),
+                        cb.like(cb.lower(root.get("sector")), pattern)
+                );
+            });
         }
         if (futureOnly) {
             specification = specification.and((root, query, cb) -> cb.greaterThan(root.get("deadline"), Instant.now()));

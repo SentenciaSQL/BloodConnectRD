@@ -229,6 +229,7 @@ Agregar capturas en `docs/screenshots/` (landing, dashboard, solicitudes, app mÃ
 - [backend/README.md](backend/README.md)
 - [frontend/README.md](frontend/README.md)
 - [mobile/README.md](mobile/README.md)
+- [docs/MCP.md](docs/MCP.md) â€” servidor MCP de solo lectura (desactivado por defecto)
 
 ## Roadmap
 
