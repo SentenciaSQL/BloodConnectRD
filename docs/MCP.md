@@ -169,6 +169,18 @@ Conexión:
 
 Debe listar las cuatro tools e invocarlas.
 
+### Postman e IntelliJ HTTP Client
+
+1. `POST /api/auth/login` y copiar `accessToken`.
+2. `POST http://localhost:8080/mcp` con:
+   - `Authorization: Bearer <accessToken>`
+   - `Content-Type: application/json`
+   - `Accept: application/json, text/event-stream` (si falta, el backend lo completa)
+3. Cuerpo `initialize`, luego `tools/list` y `tools/call`.
+4. Si `initialize` responde el header `mcp-session-id`, reutilizarlo en las siguientes llamadas.
+
+Un 401 con `"Se requiere autenticación..."` indica que falta el Bearer. Un 500 genérico de la API REST no debe aparecer en `/mcp`; si ocurre, revise el log del backend.
+
 ### Ejemplo JSON-RPC (initialize + tools/list)
 
 Tras autenticarse, un cliente envía (simplificado):
